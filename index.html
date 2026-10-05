@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>صناديق العجمي | إدارة الصناديق</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    * { font-family: 'Cairo', system-ui, sans-serif; }
+    body {
+      background: linear-gradient(160deg, #020617 0%, #0f172a 50%, #020617 100%);
+      min-height: 100vh;
+      color: #f8fafc;
+    }
+    .force-ltr {
+      direction: ltr;
+      display: inline-block;
+      unicode-bidi: embed;
+      font-variant-numeric: tabular-nums;
+    }
+    .card-glow {
+      box-shadow: 0 0 40px -10px rgba(13, 148, 136, 0.25);
+    }
+    .toast-in {
+      animation: toastIn 0.35s ease-out forwards;
+    }
+    @keyframes toastIn {
+      from { transform: translate(-50%, 120%); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+    .fade-in {
+      animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #0d9488; border-radius: 10px; }
+  </style>
+</head>
+<body class="pb-28 pt-5 px-4 sm:px-6">
+
+  <div class="max-w-2xl mx-auto">
+
+    <!-- Header -->
+    <header class="flex items-center justify-between mb-8">
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-600 to-teal-800 flex items-center justify-center shadow-lg shadow-teal-900/40 text-3xl">
+          🥜
+        </div>
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">صناديق العجمي</h1>
+          <p class="text-teal-400/90 text-sm font-medium">إدارة الصناديق • منذ 1989</p>
+        </div>
+      </div>
+      <button onclick="loadData()" class="w-11 h-11 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-teal-400 hover:bg-slate-700 transition active:scale-95">
+        <i class="fa-solid fa-rotate-right"></i>
+      </button>
+    </header>
+
+    <!-- Funds Summary -->
+    <div class="grid grid-cols-1 gap-4 mb-8" id="fundsSummary">
+      <!-- Will be rendered by JS -->
+    </div>
+
+    <!-- Add Operation -->
+    <section class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 shadow-xl mb-6 card-glow">
+      <h2 class="text-xl font-bold mb-5 flex items-center gap-2">
+        <i class="fa-solid fa-plus-circle text-teal-400"></i>
+        عملية جديدة
+      </h2>
+
+      <div class="space-y-5">
+        <!-- Fund -->
+        <div>
+          <label class="block text-slate-300 text-sm mb-2 font-medium">الصندوق</label>
+          <select id="fund" onchange="updateCurrencyOptions()" class="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-2xl px-4 py-3.5 text-base outline-none appearance-none">
+            <option value="gaziantep">صندوق عنتاب</option>
+            <option value="istanbul">صندوق اسطنبول</option>
+            <option value="aleppo">صندوق حلب</option>
+          </select>
+        </div>
+
+        <!-- Currency + Type -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 text-sm mb-2 font-medium">العملة</label>
+            <select id="currency" class="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-2xl px-4 py-3.5 text-base outline-none">
+              <option value="USD">دولار (USD)</option>
+              <option value="TRY">تركي (TRY)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 text-sm mb-2 font-medium">النوع</label>
+            <select id="type" class="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-2xl px-4 py-3.5 text-base outline-none">
+              <option value="income">إيداع (+)</option>
+              <option value="expense">خصم (−)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Amount -->
+        <div>
+          <label class="block text-slate-300 text-sm mb-2 font-medium">المبلغ</label>
+          <input id="amount" type="number" min="0.01" step="0.01" placeholder="0.00" class="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-2xl px-5 py-4 text-3xl font-bold text-center outline-none force-ltr">
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label class="block text-slate-300 text-sm mb-2 font-medium">الوصف</label>
+          <input id="description" type="text" placeholder="مثال: راتب • فاتورة • تحويل..." class="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-2xl px-4 py-3.5 text-base outline-none">
+        </div>
+
+        <!-- Notes + Exchange Rate -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 text-sm mb-2 font-medium">ملاحظات</label>
+            <input id="notes" type="text" placeholder="تفاصيل إضافية..." class="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-2xl px-4 py-3.5 text-base outline-none">
+          </div>
+          <div>
+            <label class="block text-slate-300 text-sm mb-2 font-medium">سعر الصرف (اختياري)</label>
+            <input id="exchange_rate" type="number" min="0" step="0.01" placeholder="مثال: 34.50" class="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-2xl px-4 py-3.5 text-base outline-none force-ltr">
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button onclick="addOperation()" id="submitBtn" class="w-full bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-500 hover:to-teal-600 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-teal-900/30 active:scale-[0.98] transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check"></i>
+          تسجيل العملية
+        </button>
+      </div>
+    </section>
+
+    <!-- Filter -->
+    <section class="bg-slate-900/70 border border-slate-800 rounded-3xl p-5 shadow-xl mb-6">
+      <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-filter text-teal-400"></i>
+        فلتر متقدم
+      </h2>
+
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="block text-slate-400 text-xs mb-1">من تاريخ</label>
+          <input type="date" id="dateFrom" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm">
+        </div>
+        <div>
+          <label class="block text-slate-400 text-xs mb-1">إلى تاريخ</label>
+          <input type="date" id="dateTo" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="block text-slate-400 text-xs mb-1">الصندوق</label>
+          <select id="filterFund" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm">
+            <option value="">الكل</option>
+            <option value="gaziantep">عنتاب</option>
+            <option value="istanbul">اسطنبول</option>
+            <option value="aleppo">حلب</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-400 text-xs mb-1">العملة</label>
+          <select id="filterCurrency" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm">
+            <option value="">الكل</option>
+            <option value="USD">دولار</option>
+            <option value="TRY">تركي</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="applyFilter()" class="flex-1 bg-teal-600 hover:bg-teal-500 py-3 rounded-xl font-bold text-sm transition">
+          تطبيق
+        </button>
+        <button onclick="clearFilter()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold text-sm transition">
+          مسح الفلتر
+        </button>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-teal-400"></i>
+          سجل العمليات
+        </h2>
+        <span id="filterStatus" class="text-xs text-slate-500 bg-slate-800/60 px-3 py-1 rounded-full">جميع العمليات</span>
+      </div>
+
+      <div id="historyList" class="space-y-3 max-h-[50vh] overflow-y-auto pr-1 pb-4">
+        <!-- rendered by JS -->
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl text-white font-medium shadow-2xl flex items-center gap-3 z-50 min-w-[260px] justify-center hidden toast-in">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-lg"></i>
+    <span id="toastMsg">تم</span>
+  </div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfTUufVVRWApjRXqP0sSyUZ5bOKIEBdVYP1h9di2FGJG-dRv_rIjfJVjXreFOVqoOFqw/exec";
+
+    const FUND_NAMES = {
+      gaziantep: "عنتاب",
+      istanbul: "اسطنبول",
+      aleppo: "حلب"
+    };
+
+    const FUND_CURRENCIES = {
+      gaziantep: ["USD", "TRY"],
+      istanbul: ["USD", "TRY"],
+      aleppo: ["USD"]
+    };
+
+    let currentFilter = null;
+    let allTransactions = [];
+    let summary = {};
+
+    function $(id) { return document.getElementById(id); }
+
+    // ========== Load Data ==========
+    async function loadData(filter = null, silent = false) {
+      try {
+        if (!silent) showToast("جاري التحميل...", false, true);
+
+        let url = SCRIPT_URL;
+        const params = new URLSearchParams();
+        if (filter) {
+          if (filter.from) params.append("from", filter.from);
+          if (filter.to) params.append("to", filter.to);
+          if (filter.fund) params.append("fund", filter.fund);
+          if (filter.currency) params.append("currency", filter.currency);
+        }
+        if ([...params].length) url += "?" + params.toString();
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.status !== "success") throw new Error(data.message || "خطأ في جلب البيانات");
+
+        summary = data.summary || {};
+        allTransactions = data.transactions || [];
+        currentFilter = filter;
+
+        renderFunds();
+        renderHistory();
+        updateFilterStatus();
+
+        if (!silent) showToast(filter ? "تم تطبيق الفلتر" : "تم التحديث", false);
+
+      } catch (err) {
+        console.error(err);
+        showToast("تعذر الاتصال • تحقق من الإنترنت", true);
+      }
+    }
+
+    // ========== Render Funds ==========
+    function renderFunds() {
+      const container = $("fundsSummary");
+      container.innerHTML = "";
+
+      const funds = [
+        { key: "gaziantep", name: "صندوق عنتاب", icon: "🏙️", colors: "from-teal-700 to-teal-900" },
+        { key: "istanbul", name: "صندوق اسطنبول", icon: "🌉", colors: "from-cyan-700 to-cyan-900" },
+        { key: "aleppo", name: "صندوق حلب", icon: "🏰", colors: "from-emerald-700 to-emerald-900" }
+      ];
+
+      funds.forEach(f => {
+        const data = summary[f.key] || {};
+        const currencies = FUND_CURRENCIES[f.key];
+
+        let balancesHTML = currencies.map(curr => {
+          const val = data[curr] ?? 0;
+          const isPositive = val >= 0;
+          return `
+            <div class="flex items-center justify-between">
+              <span class="text-slate-300 text-sm">${curr === "USD" ? "دولار" : "تركي"}</span>
+              <span class="font-bold text-lg force-ltr ${isPositive ? "text-teal-300" : "text-rose-400"}">
+                ${val.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+          `;
+        }).join("");
+
+        const card = document.createElement("div");
+        card.className = `rounded-3xl p-5 bg-gradient-to-br ${f.colors} border border-white/5 shadow-xl fade-in`;
+        card.innerHTML = `
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center text-2xl">${f.icon}</div>
+            <div>
+              <h3 class="font-bold text-lg">${f.name}</h3>
+              <p class="text-white/60 text-xs">${currencies.join(" + ")}</p>
+            </div>
+          </div>
+          <div class="space-y-2 bg-black/20 rounded-2xl p-4">
+            ${balancesHTML}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // ========== Render History ==========
+    function renderHistory() {
+      const cont = $("historyList");
+      cont.innerHTML = "";
+
+      if (allTransactions.length === 0) {
+        cont.innerHTML = `
+          <div class="text-center py-16 text-slate-500">
+            <i class="fa-solid fa-inbox text-4xl mb-3 opacity-40"></i>
+            <p>لا توجد عمليات في هذه الفترة</p>
+          </div>`;
+        return;
+      }
+
+      allTransactions.forEach(op => {
+        const isIncome = op.type === "income";
+        const fundName = FUND_NAMES[op.fund] || op.fund;
+        const currLabel = op.currency === "USD" ? "$" : "₺";
+
+        let dateStr = "—";
+        if (op.date) {
+          const d = new Date(op.date);
+          dateStr = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} - ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+        }
+
+        const div = document.createElement("div");
+        div.className = `flex gap-3 items-start bg-slate-900/60 border ${isIncome ? "border-teal-900/40" : "border-rose-900/40"} rounded-2xl p-4 fade-in`;
+        div.innerHTML = `
+          <div class="w-10 h-10 rounded-xl ${isIncome ? "bg-teal-500/20 text-teal-400" : "bg-rose-500/20 text-rose-400"} flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid ${isIncome ? "fa-arrow-down" : "fa-arrow-up"}"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+              <span class="font-semibold text-base ${isIncome ? "text-teal-200" : "text-rose-200"} truncate">${op.description || "بدون وصف"}</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">${fundName}</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">${op.currency}</span>
+            </div>
+            <div class="text-xs text-slate-500">${dateStr}</div>
+            ${op.notes ? `<div class="text-xs text-slate-400 mt-1.5 bg-slate-800/50 rounded-lg px-2.5 py-1.5">${op.notes}${op.exchange_rate ? ` • سعر الصرف: ${op.exchange_rate}` : ""}</div>` : ""}
+          </div>
+          <div class="text-left force-ltr flex-shrink-0">
+            <div class="text-xl font-bold ${isIncome ? "text-teal-400" : "text-rose-400"}">
+              ${isIncome ? "+" : "−"}${op.amount.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+            </div>
+            <div class="text-[10px] text-slate-500 text-right">${currLabel}</div>
+          </div>
+        `;
+        cont.appendChild(div);
+      });
+    }
+
+    function updateFilterStatus() {
+      if (!currentFilter) {
+        $("filterStatus").textContent = "جميع العمليات";
+        return;
+      }
+      const parts = [];
+      if (currentFilter.fund) parts.push(FUND_NAMES[currentFilter.fund]);
+      if (currentFilter.currency) parts.push(currentFilter.currency);
+      if (currentFilter.from || currentFilter.to) parts.push("فترة محددة");
+      $("filterStatus").textContent = parts.length ? parts.join(" • ") : "جميع العمليات";
+    }
+
+    // ========== Currency Options ==========
+    function updateCurrencyOptions() {
+      const fund = $("fund").value;
+      const select = $("currency");
+      const allowed = FUND_CURRENCIES[fund] || ["USD"];
+      select.innerHTML = allowed.map(c => `<option value="${c}">${c === "USD" ? "دولار (USD)" : "تركي (TRY)"}</option>`).join("");
+    }
+
+    // ========== Add Operation ==========
+    async function addOperation() {
+      const fund = $("fund").value;
+      const currency = $("currency").value;
+      const type = $("type").value;
+      const amount = Number($("amount").value);
+      const description = $("description").value.trim();
+      const notes = $("notes").value.trim();
+      const exchange_rate = $("exchange_rate").value ? Number($("exchange_rate").value) : null;
+
+      if (!description) {
+        highlight($("description"));
+        return showToast("الوصف مطلوب", true);
+      }
+      if (!amount || amount <= 0) {
+        highlight($("amount"));
+        return showToast("أدخل مبلغ صحيح", true);
+      }
+
+      const btn = $("submitBtn");
+      const original = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...`;
+
+      try {
+        const payload = {
+          fund,
+          currency,
+          type,
+          amount,
+          description,
+          notes,
+          exchange_rate,
+          date: new Date().toISOString()
+        };
+
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.status !== "success") throw new Error(data.message || "فشل الحفظ");
+
+        showToast(type === "income" ? `تم إيداع ${amount.toLocaleString("en-US")}` : `تم خصم ${amount.toLocaleString("en-US")}`);
+
+        // Clear form
+        $("amount").value = "";
+        $("description").value = "";
+        $("notes").value = "";
+        $("exchange_rate").value = "";
+
+        await loadData(currentFilter, true);
+
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || "فشل في الحفظ", true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+      }
+    }
+
+    // ========== Filter ==========
+    function applyFilter() {
+      const from = $("dateFrom").value;
+      const to = $("dateTo").value;
+      const fund = $("filterFund").value;
+      const currency = $("filterCurrency").value;
+
+      const filter = {};
+      if (from) filter.from = from;
+      if (to) filter.to = to;
+      if (fund) filter.fund = fund;
+      if (currency) filter.currency = currency;
+
+      if (Object.keys(filter).length === 0) {
+        return showToast("اختر معيار فلترة واحد على الأقل", true);
+      }
+      loadData(filter);
+    }
+
+    function clearFilter() {
+      $("dateFrom").value = "";
+      $("dateTo").value = "";
+      $("filterFund").value = "";
+      $("filterCurrency").value = "";
+      loadData(null);
+    }
+
+    // ========== Helpers ==========
+    function highlight(el) {
+      el.classList.add("!border-rose-500", "!ring-2", "!ring-rose-500/30");
+      setTimeout(() => el.classList.remove("!border-rose-500", "!ring-2", "!ring-rose-500/30"), 1800);
+      el.focus();
+    }
+
+    function showToast(msg, isError = false, loading = false) {
+      const toast = $("toast");
+      $("toastMsg").textContent = msg;
+      $("toastIcon").className = loading
+        ? "fa-solid fa-spinner fa-spin text-lg"
+        : isError
+          ? "fa-solid fa-circle-exclamation text-lg"
+          : "fa-solid fa-circle-check text-lg";
+
+      toast.className = `fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl text-white font-medium shadow-2xl flex items-center gap-3 z-50 min-w-[260px] justify-center toast-in ${isError ? "bg-rose-700" : "bg-teal-600"}`;
+      toast.classList.remove("hidden");
+
+      if (!loading) {
+        setTimeout(() => toast.classList.add("hidden"), 3500);
+      }
+    }
+
+    // ========== Init ==========
+    window.addEventListener("load", () => {
+      const today = new Date().toISOString().split("T")[0];
+      $("dateTo").value = today;
+      updateCurrencyOptions();
+      loadData();
+    });
+
+    // Enter key on amount
+    $("amount").addEventListener("keypress", e => {
+      if (e.key === "Enter") addOperation();
+    });
+  </script>
+</body>
+</html>
