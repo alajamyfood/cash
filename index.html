@@ -3,7 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>صناديق العجمي | إدارة الصناديق</title>
+  <title>صناديق العجمي</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0d9488">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="العجمي">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -12,37 +22,50 @@
   <style>
     * { font-family: 'Cairo', system-ui, sans-serif; }
     body {
-      background: linear-gradient(160deg, #020617 0%, #0f172a 50%, #020617 100%);
+      background: linear-gradient(165deg, #020617 0%, #0f172a 45%, #020617 100%);
       min-height: 100vh;
       color: #f8fafc;
     }
     .force-ltr {
-      direction: ltr;
+      direction: ltr !important;
       display: inline-block;
       unicode-bidi: embed;
       font-variant-numeric: tabular-nums;
     }
     .card-glow {
-      box-shadow: 0 0 40px -10px rgba(13, 148, 136, 0.25);
+      box-shadow: 0 0 50px -12px rgba(13, 148, 136, 0.28);
     }
-    .toast-in {
-      animation: toastIn 0.35s ease-out forwards;
-    }
+    .toast-in { animation: toastIn 0.35s ease-out forwards; }
     @keyframes toastIn {
       from { transform: translate(-50%, 120%); opacity: 0; }
       to { transform: translate(-50%, 0); opacity: 1; }
     }
-    .fade-in {
-      animation: fadeIn 0.4s ease-out;
-    }
+    .fade-in { animation: fadeIn 0.35s ease-out; }
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
+      from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    /* Custom scrollbar */
-    ::-webkit-scrollbar { width: 6px; }
+    .modal-bg { background: rgba(2, 6, 23, 0.88); backdrop-filter: blur(10px); }
+    ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: #1e293b; }
     ::-webkit-scrollbar-thumb { background: #0d9488; border-radius: 10px; }
+
+    /* ========== Print Styles ========== */
+    @media print {
+      body * { visibility: hidden !important; }
+      #printSheet, #printSheet * { visibility: visible !important; }
+      #printSheet {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white !important;
+        color: #111 !important;
+        padding: 40px;
+        font-size: 14px;
+      }
+      .no-print { display: none !important; }
+    }
   </style>
 </head>
 <body class="pb-28 pt-5 px-4 sm:px-6">
@@ -50,13 +73,14 @@
   <div class="max-w-2xl mx-auto">
 
     <!-- Header -->
-    <header class="flex items-center justify-between mb-8">
+    <header class="flex items-center justify-between mb-7">
       <div class="flex items-center gap-3">
-        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-600 to-teal-800 flex items-center justify-center shadow-lg shadow-teal-900/40 text-3xl">
-          🥜
+        <div class="w-14 h-14 rounded-2xl overflow-hidden bg-gradient-to-br from-teal-600 to-teal-800 shadow-lg shadow-teal-900/40 flex items-center justify-center">
+          <img src="logo.png" alt="العجمي" class="w-full h-full object-contain p-1" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+          <span class="text-2xl hidden">🥜</span>
         </div>
         <div>
-          <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">صناديق العجمي</h1>
+          <h1 class="text-2xl sm:text-3xl font-black tracking-tight">صناديق العجمي</h1>
           <p class="text-teal-400/90 text-sm font-medium">إدارة الصناديق • منذ 1989</p>
         </div>
       </div>
@@ -65,10 +89,20 @@
       </button>
     </header>
 
-    <!-- Funds Summary -->
-    <div class="grid grid-cols-1 gap-4 mb-8" id="fundsSummary">
-      <!-- Will be rendered by JS -->
+    <!-- Total Card -->
+    <div id="totalCard" class="rounded-3xl p-5 mb-5 bg-gradient-to-br from-teal-800 via-teal-700 to-cyan-800 border border-teal-500/30 shadow-xl card-glow fade-in">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center text-2xl">📊</div>
+        <div>
+          <h3 class="font-bold text-xl">إجمالي الصناديق</h3>
+          <p class="text-teal-100/70 text-xs">عنتاب + اسطنبول + حلب</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3" id="totalBalances"></div>
     </div>
+
+    <!-- Funds Summary -->
+    <div class="grid grid-cols-1 gap-4 mb-7" id="fundsSummary"></div>
 
     <!-- Add Operation -->
     <section class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 shadow-xl mb-6 card-glow">
@@ -78,17 +112,15 @@
       </h2>
 
       <div class="space-y-5">
-        <!-- Fund -->
         <div>
           <label class="block text-slate-300 text-sm mb-2 font-medium">الصندوق</label>
-          <select id="fund" onchange="updateCurrencyOptions()" class="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-2xl px-4 py-3.5 text-base outline-none appearance-none">
+          <select id="fund" onchange="updateCurrencyOptions()" class="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-2xl px-4 py-3.5 text-base outline-none">
             <option value="gaziantep">صندوق عنتاب</option>
             <option value="istanbul">صندوق اسطنبول</option>
             <option value="aleppo">صندوق حلب</option>
           </select>
         </div>
 
-        <!-- Currency + Type -->
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-slate-300 text-sm mb-2 font-medium">العملة</label>
@@ -106,19 +138,16 @@
           </div>
         </div>
 
-        <!-- Amount -->
         <div>
           <label class="block text-slate-300 text-sm mb-2 font-medium">المبلغ</label>
           <input id="amount" type="number" min="0.01" step="0.01" placeholder="0.00" class="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-2xl px-5 py-4 text-3xl font-bold text-center outline-none force-ltr">
         </div>
 
-        <!-- Description -->
         <div>
           <label class="block text-slate-300 text-sm mb-2 font-medium">الوصف</label>
           <input id="description" type="text" placeholder="مثال: راتب • فاتورة • تحويل..." class="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-2xl px-4 py-3.5 text-base outline-none">
         </div>
 
-        <!-- Notes + Exchange Rate -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-slate-300 text-sm mb-2 font-medium">ملاحظات</label>
@@ -130,7 +159,6 @@
           </div>
         </div>
 
-        <!-- Submit -->
         <button onclick="addOperation()" id="submitBtn" class="w-full bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-500 hover:to-teal-600 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-teal-900/30 active:scale-[0.98] transition flex items-center justify-center gap-2">
           <i class="fa-solid fa-check"></i>
           تسجيل العملية
@@ -156,10 +184,10 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="grid grid-cols-3 gap-2 mb-4">
         <div>
           <label class="block text-slate-400 text-xs mb-1">الصندوق</label>
-          <select id="filterFund" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm">
+          <select id="filterFund" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2 py-2.5 text-sm">
             <option value="">الكل</option>
             <option value="gaziantep">عنتاب</option>
             <option value="istanbul">اسطنبول</option>
@@ -168,21 +196,25 @@
         </div>
         <div>
           <label class="block text-slate-400 text-xs mb-1">العملة</label>
-          <select id="filterCurrency" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm">
+          <select id="filterCurrency" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2 py-2.5 text-sm">
             <option value="">الكل</option>
             <option value="USD">دولار</option>
             <option value="TRY">تركي</option>
           </select>
         </div>
+        <div>
+          <label class="block text-slate-400 text-xs mb-1">النوع</label>
+          <select id="filterType" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2 py-2.5 text-sm">
+            <option value="">الكل</option>
+            <option value="income">إيداع</option>
+            <option value="expense">خصم</option>
+          </select>
+        </div>
       </div>
 
       <div class="flex gap-2">
-        <button onclick="applyFilter()" class="flex-1 bg-teal-600 hover:bg-teal-500 py-3 rounded-xl font-bold text-sm transition">
-          تطبيق
-        </button>
-        <button onclick="clearFilter()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold text-sm transition">
-          مسح الفلتر
-        </button>
+        <button onclick="applyFilter()" class="flex-1 bg-teal-600 hover:bg-teal-500 py-3 rounded-xl font-bold text-sm transition">تطبيق</button>
+        <button onclick="clearFilter()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold text-sm transition">مسح</button>
       </div>
     </section>
 
@@ -195,12 +227,85 @@
         </h2>
         <span id="filterStatus" class="text-xs text-slate-500 bg-slate-800/60 px-3 py-1 rounded-full">جميع العمليات</span>
       </div>
-
-      <div id="historyList" class="space-y-3 max-h-[50vh] overflow-y-auto pr-1 pb-4">
-        <!-- rendered by JS -->
-      </div>
+      <div id="historyList" class="space-y-3 max-h-[50vh] overflow-y-auto pr-1 pb-4"></div>
     </section>
+  </div>
 
+  <!-- Transaction Modal -->
+  <div id="txModal" class="fixed inset-0 z-50 hidden modal-bg flex items-end sm:items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md max-h-[92vh] overflow-y-auto shadow-2xl fade-in">
+      
+      <!-- Screen View -->
+      <div class="p-6 no-print">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-xl font-bold">تفاصيل العملية</h3>
+          <button onclick="closeModal()" class="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div id="modalContent" class="space-y-4 text-sm"></div>
+        <div class="mt-6 flex gap-3">
+          <button onclick="window.print()" class="flex-1 bg-teal-600 hover:bg-teal-500 py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+            <i class="fa-solid fa-print"></i> طباعة
+          </button>
+          <button onclick="closeModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold">إغلاق</button>
+        </div>
+      </div>
+
+      <!-- Print-only clean sheet -->
+      <div id="printSheet" class="hidden print:block">
+        <div style="text-align:center; margin-bottom:30px;">
+          <img src="logo.png" alt="العجمي" style="height:70px; margin:0 auto 10px;" onerror="this.style.display='none'">
+          <h1 style="font-size:22px; font-weight:900; margin:0;">شركة العجمي</h1>
+          <p style="font-size:13px; color:#555; margin:4px 0 0;">صناديق الشركة • منذ 1989</p>
+        </div>
+
+        <hr style="border:none; border-top:2px solid #0d9488; margin:20px 0;">
+
+        <h2 style="font-size:18px; font-weight:700; margin-bottom:20px; text-align:center;">تفاصيل العملية</h2>
+
+        <table style="width:100%; border-collapse:collapse; font-size:14px;">
+          <tr>
+            <td style="padding:10px 0; color:#555; width:35%;">النوع</td>
+            <td style="padding:10px 0; font-weight:700;" id="p-type"></td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0; color:#555;">المبلغ</td>
+            <td style="padding:10px 0; font-weight:700; font-size:18px;" class="force-ltr" id="p-amount"></td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0; color:#555;">العملة</td>
+            <td style="padding:10px 0; font-weight:600;" id="p-currency"></td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0; color:#555;">الصندوق</td>
+            <td style="padding:10px 0; font-weight:600;" id="p-fund"></td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0; color:#555;">التاريخ</td>
+            <td style="padding:10px 0;" id="p-date"></td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0; color:#555; vertical-align:top;">الوصف</td>
+            <td style="padding:10px 0; font-weight:500;" id="p-desc"></td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0; color:#555; vertical-align:top;">الملاحظات</td>
+            <td style="padding:10px 0;" id="p-notes"></td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0; color:#555;">سعر الصرف</td>
+            <td style="padding:10px 0;" class="force-ltr" id="p-rate"></td>
+          </tr>
+        </table>
+
+        <hr style="border:none; border-top:1px solid #ddd; margin:30px 0 15px;">
+        <p style="text-align:center; font-size:11px; color:#888;">
+          العجمي • منذ 1989<br>
+          تم الطباعة من نظام إدارة الصناديق
+        </p>
+      </div>
+    </div>
   </div>
 
   <!-- Toast -->
@@ -230,7 +335,10 @@
 
     function $(id) { return document.getElementById(id); }
 
-    // ========== Load Data ==========
+    function formatNumber(num) {
+      return Number(num || 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
+    }
+
     async function loadData(filter = null, silent = false) {
       try {
         if (!silent) showToast("جاري التحميل...", false, true);
@@ -252,21 +360,40 @@
 
         summary = data.summary || {};
         allTransactions = data.transactions || [];
-        currentFilter = filter;
 
+        if (filter && filter.type) {
+          allTransactions = allTransactions.filter(t => t.type === filter.type);
+        }
+
+        currentFilter = filter;
+        renderTotal();
         renderFunds();
         renderHistory();
         updateFilterStatus();
 
         if (!silent) showToast(filter ? "تم تطبيق الفلتر" : "تم التحديث", false);
-
       } catch (err) {
         console.error(err);
         showToast("تعذر الاتصال • تحقق من الإنترنت", true);
       }
     }
 
-    // ========== Render Funds ==========
+    function renderTotal() {
+      const usd = (summary.gaziantep?.USD || 0) + (summary.istanbul?.USD || 0) + (summary.aleppo?.USD || 0);
+      const tryTotal = (summary.gaziantep?.TRY || 0) + (summary.istanbul?.TRY || 0);
+
+      $("totalBalances").innerHTML = `
+        <div class="bg-black/25 rounded-2xl p-4 text-center">
+          <div class="text-teal-100/70 text-xs mb-1">إجمالي الدولار</div>
+          <div class="text-2xl font-black force-ltr ${usd >= 0 ? 'text-white' : 'text-rose-300'}">${formatNumber(usd)}</div>
+        </div>
+        <div class="bg-black/25 rounded-2xl p-4 text-center">
+          <div class="text-teal-100/70 text-xs mb-1">إجمالي التركي</div>
+          <div class="text-2xl font-black force-ltr ${tryTotal >= 0 ? 'text-white' : 'text-rose-300'}">${formatNumber(tryTotal)}</div>
+        </div>
+      `;
+    }
+
     function renderFunds() {
       const container = $("fundsSummary");
       container.innerHTML = "";
@@ -283,15 +410,11 @@
 
         let balancesHTML = currencies.map(curr => {
           const val = data[curr] ?? 0;
-          const isPositive = val >= 0;
           return `
             <div class="flex items-center justify-between">
               <span class="text-slate-300 text-sm">${curr === "USD" ? "دولار" : "تركي"}</span>
-              <span class="font-bold text-lg force-ltr ${isPositive ? "text-teal-300" : "text-rose-400"}">
-                ${val.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-          `;
+              <span class="font-bold text-lg force-ltr ${val >= 0 ? "text-teal-300" : "text-rose-400"}">${formatNumber(val)}</span>
+            </div>`;
         }).join("");
 
         const card = document.createElement("div");
@@ -304,15 +427,12 @@
               <p class="text-white/60 text-xs">${currencies.join(" + ")}</p>
             </div>
           </div>
-          <div class="space-y-2 bg-black/20 rounded-2xl p-4">
-            ${balancesHTML}
-          </div>
+          <div class="space-y-2 bg-black/20 rounded-2xl p-4">${balancesHTML}</div>
         `;
         container.appendChild(card);
       });
     }
 
-    // ========== Render History ==========
     function renderHistory() {
       const cont = $("historyList");
       cont.innerHTML = "";
@@ -329,7 +449,6 @@
       allTransactions.forEach(op => {
         const isIncome = op.type === "income";
         const fundName = FUND_NAMES[op.fund] || op.fund;
-        const currLabel = op.currency === "USD" ? "$" : "₺";
 
         let dateStr = "—";
         if (op.date) {
@@ -338,7 +457,8 @@
         }
 
         const div = document.createElement("div");
-        div.className = `flex gap-3 items-start bg-slate-900/60 border ${isIncome ? "border-teal-900/40" : "border-rose-900/40"} rounded-2xl p-4 fade-in`;
+        div.className = `flex gap-3 items-start bg-slate-900/60 border ${isIncome ? "border-teal-900/40" : "border-rose-900/40"} rounded-2xl p-4 fade-in cursor-pointer active:scale-[0.98] transition`;
+        div.onclick = () => openModal(op);
         div.innerHTML = `
           <div class="w-10 h-10 rounded-xl ${isIncome ? "bg-teal-500/20 text-teal-400" : "bg-rose-500/20 text-rose-400"} flex items-center justify-center flex-shrink-0">
             <i class="fa-solid ${isIncome ? "fa-arrow-down" : "fa-arrow-up"}"></i>
@@ -350,17 +470,66 @@
               <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">${op.currency}</span>
             </div>
             <div class="text-xs text-slate-500">${dateStr}</div>
-            ${op.notes ? `<div class="text-xs text-slate-400 mt-1.5 bg-slate-800/50 rounded-lg px-2.5 py-1.5">${op.notes}${op.exchange_rate ? ` • سعر الصرف: ${op.exchange_rate}` : ""}</div>` : ""}
           </div>
           <div class="text-left force-ltr flex-shrink-0">
             <div class="text-xl font-bold ${isIncome ? "text-teal-400" : "text-rose-400"}">
-              ${isIncome ? "+" : "−"}${op.amount.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+              ${isIncome ? "+" : "−"}${formatNumber(op.amount)}
             </div>
-            <div class="text-[10px] text-slate-500 text-right">${currLabel}</div>
           </div>
         `;
         cont.appendChild(div);
       });
+    }
+
+    function openModal(op) {
+      const isIncome = op.type === "income";
+      const fundName = FUND_NAMES[op.fund] || op.fund;
+
+      let dateStr = "—";
+      let dateFull = "—";
+      if (op.date) {
+        const d = new Date(op.date);
+        dateStr = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} - ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+        dateFull = d.toLocaleString("ar-SY", { dateStyle: "full", timeStyle: "short" });
+      }
+
+      // Screen modal content
+      $("modalContent").innerHTML = `
+        <div class="bg-slate-800/60 rounded-2xl p-4 space-y-3">
+          <div class="flex justify-between"><span class="text-slate-400">النوع</span><span class="font-bold ${isIncome ? 'text-teal-400' : 'text-rose-400'}">${isIncome ? 'إيداع' : 'خصم'}</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">المبلغ</span><span class="font-bold text-lg force-ltr">${formatNumber(op.amount)} ${op.currency}</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">الصندوق</span><span class="font-medium">${fundName}</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">التاريخ</span><span class="text-sm force-ltr">${dateStr}</span></div>
+        </div>
+        <div>
+          <div class="text-slate-400 text-xs mb-1">الوصف</div>
+          <div class="bg-slate-800/60 rounded-xl px-4 py-3 font-medium">${op.description || "—"}</div>
+        </div>
+        <div>
+          <div class="text-slate-400 text-xs mb-1">الملاحظات</div>
+          <div class="bg-slate-800/60 rounded-xl px-4 py-3">${op.notes && op.notes.trim() !== "" ? op.notes : "—"}</div>
+        </div>
+        <div>
+          <div class="text-slate-400 text-xs mb-1">سعر الصرف</div>
+          <div class="bg-slate-800/60 rounded-xl px-4 py-3 force-ltr">${op.exchange_rate ? formatNumber(op.exchange_rate) : "—"}</div>
+        </div>
+      `;
+
+      // Print content
+      $("p-type").textContent = isIncome ? "إيداع" : "خصم";
+      $("p-amount").textContent = formatNumber(op.amount);
+      $("p-currency").textContent = op.currency === "USD" ? "دولار أمريكي (USD)" : "ليرة تركية (TRY)";
+      $("p-fund").textContent = "صندوق " + fundName;
+      $("p-date").textContent = dateFull;
+      $("p-desc").textContent = op.description || "—";
+      $("p-notes").textContent = (op.notes && op.notes.trim() !== "") ? op.notes : "—";
+      $("p-rate").textContent = op.exchange_rate ? formatNumber(op.exchange_rate) : "—";
+
+      $("txModal").classList.remove("hidden");
+    }
+
+    function closeModal() {
+      $("txModal").classList.add("hidden");
     }
 
     function updateFilterStatus() {
@@ -371,11 +540,11 @@
       const parts = [];
       if (currentFilter.fund) parts.push(FUND_NAMES[currentFilter.fund]);
       if (currentFilter.currency) parts.push(currentFilter.currency);
-      if (currentFilter.from || currentFilter.to) parts.push("فترة محددة");
+      if (currentFilter.type) parts.push(currentFilter.type === "income" ? "إيداع" : "خصم");
+      if (currentFilter.from || currentFilter.to) parts.push("فترة");
       $("filterStatus").textContent = parts.length ? parts.join(" • ") : "جميع العمليات";
     }
 
-    // ========== Currency Options ==========
     function updateCurrencyOptions() {
       const fund = $("fund").value;
       const select = $("currency");
@@ -383,7 +552,6 @@
       select.innerHTML = allowed.map(c => `<option value="${c}">${c === "USD" ? "دولار (USD)" : "تركي (TRY)"}</option>`).join("");
     }
 
-    // ========== Add Operation ==========
     async function addOperation() {
       const fund = $("fund").value;
       const currency = $("currency").value;
@@ -393,14 +561,8 @@
       const notes = $("notes").value.trim();
       const exchange_rate = $("exchange_rate").value ? Number($("exchange_rate").value) : null;
 
-      if (!description) {
-        highlight($("description"));
-        return showToast("الوصف مطلوب", true);
-      }
-      if (!amount || amount <= 0) {
-        highlight($("amount"));
-        return showToast("أدخل مبلغ صحيح", true);
-      }
+      if (!description) { highlight($("description")); return showToast("الوصف مطلوب", true); }
+      if (!amount || amount <= 0) { highlight($("amount")); return showToast("أدخل مبلغ صحيح", true); }
 
       const btn = $("submitBtn");
       const original = btn.innerHTML;
@@ -408,38 +570,22 @@
       btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...`;
 
       try {
-        const payload = {
-          fund,
-          currency,
-          type,
-          amount,
-          description,
-          notes,
-          exchange_rate,
-          date: new Date().toISOString()
-        };
-
+        const payload = { fund, currency, type, amount, description, notes, exchange_rate, date: new Date().toISOString() };
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify(payload)
         });
-
         const data = await res.json();
         if (data.status !== "success") throw new Error(data.message || "فشل الحفظ");
 
-        showToast(type === "income" ? `تم إيداع ${amount.toLocaleString("en-US")}` : `تم خصم ${amount.toLocaleString("en-US")}`);
-
-        // Clear form
+        showToast(type === "income" ? `تم إيداع ${formatNumber(amount)}` : `تم خصم ${formatNumber(amount)}`);
         $("amount").value = "";
         $("description").value = "";
         $("notes").value = "";
         $("exchange_rate").value = "";
-
         await loadData(currentFilter, true);
-
       } catch (err) {
-        console.error(err);
         showToast(err.message || "فشل في الحفظ", true);
       } finally {
         btn.disabled = false;
@@ -447,22 +593,21 @@
       }
     }
 
-    // ========== Filter ==========
     function applyFilter() {
       const from = $("dateFrom").value;
       const to = $("dateTo").value;
       const fund = $("filterFund").value;
       const currency = $("filterCurrency").value;
+      const type = $("filterType").value;
 
       const filter = {};
       if (from) filter.from = from;
       if (to) filter.to = to;
       if (fund) filter.fund = fund;
       if (currency) filter.currency = currency;
+      if (type) filter.type = type;
 
-      if (Object.keys(filter).length === 0) {
-        return showToast("اختر معيار فلترة واحد على الأقل", true);
-      }
+      if (Object.keys(filter).length === 0) return showToast("اختر معيار فلترة واحد على الأقل", true);
       loadData(filter);
     }
 
@@ -471,10 +616,10 @@
       $("dateTo").value = "";
       $("filterFund").value = "";
       $("filterCurrency").value = "";
+      $("filterType").value = "";
       loadData(null);
     }
 
-    // ========== Helpers ==========
     function highlight(el) {
       el.classList.add("!border-rose-500", "!ring-2", "!ring-rose-500/30");
       setTimeout(() => el.classList.remove("!border-rose-500", "!ring-2", "!ring-rose-500/30"), 1800);
@@ -484,21 +629,16 @@
     function showToast(msg, isError = false, loading = false) {
       const toast = $("toast");
       $("toastMsg").textContent = msg;
-      $("toastIcon").className = loading
-        ? "fa-solid fa-spinner fa-spin text-lg"
-        : isError
-          ? "fa-solid fa-circle-exclamation text-lg"
-          : "fa-solid fa-circle-check text-lg";
-
+      $("toastIcon").className = loading ? "fa-solid fa-spinner fa-spin text-lg" : isError ? "fa-solid fa-circle-exclamation text-lg" : "fa-solid fa-circle-check text-lg";
       toast.className = `fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl text-white font-medium shadow-2xl flex items-center gap-3 z-50 min-w-[260px] justify-center toast-in ${isError ? "bg-rose-700" : "bg-teal-600"}`;
       toast.classList.remove("hidden");
-
-      if (!loading) {
-        setTimeout(() => toast.classList.add("hidden"), 3500);
-      }
+      if (!loading) setTimeout(() => toast.classList.add("hidden"), 3500);
     }
 
-    // ========== Init ==========
+    $("txModal").addEventListener("click", e => {
+      if (e.target === $("txModal")) closeModal();
+    });
+
     window.addEventListener("load", () => {
       const today = new Date().toISOString().split("T")[0];
       $("dateTo").value = today;
@@ -506,7 +646,6 @@
       loadData();
     });
 
-    // Enter key on amount
     $("amount").addEventListener("keypress", e => {
       if (e.key === "Enter") addOperation();
     });
