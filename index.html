@@ -73,6 +73,12 @@
 
     * {
       font-family: 'Cairo', system-ui, sans-serif;
+      box-sizing: border-box;
+    }
+
+    html {
+      width: 100%;
+      min-width: 0;
     }
 
     body {
@@ -86,6 +92,9 @@
 
       min-height: 100vh;
       color: #f8fafc;
+      width: 100%;
+      min-width: 0;
+      overflow-x: hidden;
     }
 
     .force-ltr {
@@ -163,13 +172,17 @@
     }
 
     /* =========================================================
-       PRINT SYSTEM
+       PRINT SHEETS - SCREEN
        ========================================================= */
 
     .print-sheet,
     .filter-print-sheet {
       display: none;
     }
+
+    /* =========================================================
+       PRINT SYSTEM
+       ========================================================= */
 
     @media print {
 
@@ -178,36 +191,32 @@
         margin: 12mm;
       }
 
-      html {
-        width: 100% !important;
-        min-width: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #fff !important;
-      }
-
+      html,
       body {
         width: 100% !important;
         min-width: 0 !important;
         max-width: none !important;
-        min-height: 0 !important;
-        height: auto !important;
 
         margin: 0 !important;
         padding: 0 !important;
 
-        background: #fff !important;
-        color: #111 !important;
+        background: #ffffff !important;
+        color: #111111 !important;
 
         overflow: visible !important;
 
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+
+        -webkit-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
       }
 
-      /* =======================================================
-         HIDE MAIN UI
-         ======================================================= */
+      /*
+       * مهم جدًا:
+       * نخفي كل شيء بشكل مباشر أثناء الطباعة.
+       * هذا أكثر ثباتًا على iPhone / iPad / Android.
+       */
 
       body.printing-single > * {
         display: none !important;
@@ -217,17 +226,17 @@
         display: none !important;
       }
 
-      /* =======================================================
-         SINGLE TRANSACTION
-         ======================================================= */
+      /*
+       * إظهار ورقة العملية المفردة فقط
+       */
 
-      body.printing-single > #printSheet {
+      body.printing-single #printSheet {
         display: block !important;
 
-        position: relative !important;
+        position: static !important;
 
         width: 100% !important;
-        max-width: 100% !important;
+        max-width: none !important;
         min-width: 0 !important;
 
         height: auto !important;
@@ -236,12 +245,10 @@
         margin: 0 !important;
         padding: 0 !important;
 
-        box-sizing: border-box !important;
+        background: #ffffff !important;
+        color: #111111 !important;
 
-        background: #fff !important;
-        color: #111 !important;
-
-        border: none !important;
+        border: 0 !important;
         border-radius: 0 !important;
         box-shadow: none !important;
 
@@ -249,160 +256,158 @@
 
         visibility: visible !important;
 
-        page-break-before: avoid !important;
-        page-break-after: avoid !important;
-
-        break-before: avoid !important;
-        break-after: avoid !important;
-
         transform: none !important;
+
+        display: block !important;
       }
 
-      body.printing-single > #printSheet,
-      body.printing-single > #printSheet * {
+      body.printing-single #printSheet,
+      body.printing-single #printSheet * {
         visibility: visible !important;
       }
 
-      body.printing-single > #printSheet img {
+      /*
+       * إظهار تقرير الفلتر فقط
+       */
+
+      body.printing-filter #filterPrintSheet {
         display: block !important;
 
-        max-width: none !important;
+        position: static !important;
 
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+
+        height: auto !important;
+        min-height: 0 !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        background: #ffffff !important;
+        color: #111111 !important;
+
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+
+        overflow: visible !important;
+
+        visibility: visible !important;
+
+        transform: none !important;
+
+        display: block !important;
+      }
+
+      body.printing-filter #filterPrintSheet,
+      body.printing-filter #filterPrintSheet * {
+        visibility: visible !important;
+      }
+
+      /*
+       * SINGLE PRINT
+       */
+
+      body.printing-single #printSheet img {
+        display: block !important;
+
+        width: auto !important;
+        max-width: none !important;
         height: 55px !important;
-        width: auto !important;
 
         margin-left: auto !important;
         margin-right: auto !important;
 
         object-fit: contain !important;
 
-        page-break-inside: avoid !important;
         break-inside: avoid !important;
+        page-break-inside: avoid !important;
       }
 
-      body.printing-single > #printSheet table {
+      body.printing-single #printSheet table {
         width: 100% !important;
         max-width: 100% !important;
 
         border-collapse: collapse !important;
-
         table-layout: fixed !important;
 
         margin: 0 !important;
 
-        page-break-inside: avoid !important;
         break-inside: avoid !important;
+        page-break-inside: avoid !important;
       }
 
-      body.printing-single > #printSheet tr,
-      body.printing-single > #printSheet td,
-      body.printing-single > #printSheet th {
-        page-break-inside: avoid !important;
+      body.printing-single #printSheet tr,
+      body.printing-single #printSheet td,
+      body.printing-single #printSheet th {
         break-inside: avoid !important;
+        page-break-inside: avoid !important;
       }
 
-      /* =======================================================
-         FILTER REPORT
-         ======================================================= */
+      /*
+       * FILTER PRINT
+       */
 
-      body.printing-filter > #filterPrintSheet {
+      body.printing-filter #filterPrintSheet img {
         display: block !important;
 
-        position: relative !important;
-
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 0 !important;
-
-        height: auto !important;
-        min-height: 0 !important;
-
-        margin: 0 !important;
-        padding: 0 !important;
-
-        box-sizing: border-box !important;
-
-        background: #fff !important;
-        color: #111 !important;
-
-        border: none !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-
-        overflow: visible !important;
-
-        visibility: visible !important;
-
-        page-break-before: avoid !important;
-        break-before: avoid !important;
-
-        transform: none !important;
-      }
-
-      body.printing-filter > #filterPrintSheet,
-      body.printing-filter > #filterPrintSheet * {
-        visibility: visible !important;
-      }
-
-      body.printing-filter > #filterPrintSheet img {
-        display: block !important;
-
+        width: auto !important;
         max-width: none !important;
-
         height: 50px !important;
-        width: auto !important;
 
         margin-left: auto !important;
         margin-right: auto !important;
 
         object-fit: contain !important;
 
-        page-break-inside: avoid !important;
         break-inside: avoid !important;
+        page-break-inside: avoid !important;
       }
 
-      body.printing-filter > #filterPrintSheet table {
+      body.printing-filter #filterPrintSheet table {
         width: 100% !important;
         max-width: 100% !important;
 
         border-collapse: collapse !important;
-
         table-layout: fixed !important;
 
         margin: 0 !important;
 
-        page-break-inside: auto !important;
         break-inside: auto !important;
+        page-break-inside: auto !important;
       }
 
-      body.printing-filter > #filterPrintSheet thead {
+      body.printing-filter #filterPrintSheet thead {
         display: table-header-group !important;
       }
 
-      body.printing-filter > #filterPrintSheet tbody {
+      body.printing-filter #filterPrintSheet tbody {
         display: table-row-group !important;
       }
 
-      body.printing-filter > #filterPrintSheet tr {
-        page-break-inside: avoid !important;
+      body.printing-filter #filterPrintSheet tr {
         break-inside: avoid !important;
+        page-break-inside: avoid !important;
       }
 
-      body.printing-filter > #filterPrintSheet td,
-      body.printing-filter > #filterPrintSheet th {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
+      body.printing-filter #filterPrintSheet td,
+      body.printing-filter #filterPrintSheet th {
         box-sizing: border-box !important;
-      }
 
-      body.printing-filter > #filterPrintSheet .report-footer {
-        page-break-inside: avoid !important;
         break-inside: avoid !important;
+        page-break-inside: avoid !important;
       }
 
-      /* =======================================================
-         FORCE LTR
-         ======================================================= */
+      body.printing-filter #filterPrintSheet .report-footer {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+
+      /*
+       * LTR
+       */
 
       body.printing-single .force-ltr,
       body.printing-filter .force-ltr {
@@ -413,9 +418,9 @@
         font-variant-numeric: tabular-nums !important;
       }
 
-      /* =======================================================
-         DO NOT PRINT UI
-         ======================================================= */
+      /*
+       * NO PRINT
+       */
 
       body.printing-single .no-print,
       body.printing-filter .no-print {
@@ -429,24 +434,53 @@
         display: none !important;
       }
 
-      /* =======================================================
-         REMOVE SCREEN EFFECTS
-         ======================================================= */
+      /*
+       * إزالة تأثيرات الشاشة
+       */
 
       body.printing-single *,
       body.printing-filter * {
         text-shadow: none !important;
       }
 
-      /* =======================================================
-         MOBILE WEBKIT PRINT FIX
-         ======================================================= */
+      /*
+       * منع القص العرضي على الموبايل
+       */
 
-      body.printing-single > #printSheet,
-      body.printing-filter > #filterPrintSheet {
-        -webkit-text-size-adjust: 100% !important;
-        text-size-adjust: 100% !important;
+      body.printing-single #printSheet,
+      body.printing-filter #filterPrintSheet {
+        overflow: visible !important;
+        transform: none !important;
       }
+
+      /*
+       * MOBILE WEBKIT
+       */
+
+      body.printing-single,
+      body.printing-filter {
+        overflow: visible !important;
+        height: auto !important;
+        min-height: 0 !important;
+      }
+
+    }
+
+    /* =========================================================
+       EXTRA MOBILE PRINT SAFETY
+       ========================================================= */
+
+    @media screen and (max-width: 640px) {
+
+      #printSheet,
+      #filterPrintSheet {
+        position: fixed;
+        left: -100000px;
+        top: 0;
+        width: 210mm;
+        background: #fff;
+      }
+
     }
 
   </style>
@@ -568,8 +602,6 @@
 
       <div class="space-y-5">
 
-        <!-- FUND -->
-
         <div>
 
           <label class="block text-slate-300 text-sm mb-2 font-medium">
@@ -597,8 +629,6 @@
           </select>
 
         </div>
-
-        <!-- CURRENCY + TYPE -->
 
         <div class="grid grid-cols-2 gap-3">
 
@@ -650,8 +680,6 @@
 
         </div>
 
-        <!-- AMOUNT -->
-
         <div>
 
           <label class="block text-slate-300 text-sm mb-2 font-medium">
@@ -669,8 +697,6 @@
 
         </div>
 
-        <!-- DESCRIPTION -->
-
         <div>
 
           <label class="block text-slate-300 text-sm mb-2 font-medium">
@@ -685,8 +711,6 @@
           >
 
         </div>
-
-        <!-- NOTES + EXCHANGE RATE -->
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
@@ -723,8 +747,6 @@
           </div>
 
         </div>
-
-        <!-- SUBMIT -->
 
         <button
           onclick="addOperation()"
@@ -1348,6 +1370,8 @@
 
     let currentTransaction = null;
 
+    let printResetTimer = null;
+
 
     /* =========================================================
        SHORT SELECTOR
@@ -1437,7 +1461,10 @@
 
     function escapeHTML(value) {
 
-      if (value === null || value === undefined) {
+      if (
+        value === null ||
+        value === undefined
+      ) {
         return "";
       }
 
@@ -1451,63 +1478,63 @@
 
 
     /* =========================================================
-       LOAD DATA FROM GOOGLE SHEETS
+       LOAD DATA
        ========================================================= */
 
-    async function loadData(filter = null, silent = false) {
+    async function loadData(
+      filter = null,
+      silent = false
+    ) {
 
       try {
 
         if (!silent) {
+
           showToast(
             "جاري تحميل سجل العمليات...",
             false,
             true
           );
+
         }
 
 
-        let url = SCRIPT_URL;
+        const url =
+          new URL(SCRIPT_URL);
 
-        const params = new URLSearchParams();
-
-
-        /* -----------------------------------------------------
-           FILTER PARAMETERS
-           ----------------------------------------------------- */
 
         if (filter) {
 
           if (filter.from) {
-            params.append(
+            url.searchParams.set(
               "from",
               filter.from
             );
           }
 
           if (filter.to) {
-            params.append(
+            url.searchParams.set(
               "to",
               filter.to
             );
           }
 
           if (filter.fund) {
-            params.append(
+            url.searchParams.set(
               "fund",
               filter.fund
             );
           }
 
           if (filter.currency) {
-            params.append(
+            url.searchParams.set(
               "currency",
               filter.currency
             );
           }
 
           if (filter.type) {
-            params.append(
+            url.searchParams.set(
               "type",
               filter.type
             );
@@ -1516,40 +1543,25 @@
         }
 
 
-        /* -----------------------------------------------------
-           CACHE BUSTER
-           ----------------------------------------------------- */
-
-        params.append(
+        url.searchParams.set(
           "_ts",
           Date.now().toString()
         );
 
 
-        const queryString =
-          params.toString();
-
-
-        if (queryString) {
-          url += "?" + queryString;
-        }
-
-
-        /* -----------------------------------------------------
-           REQUEST
-           ----------------------------------------------------- */
-
-        const response = await fetch(
-          url,
-          {
-            method: "GET",
-            cache: "no-store",
-            redirect: "follow",
-            headers: {
-              "Accept": "application/json,text/plain,*/*"
+        const response =
+          await fetch(
+            url.toString(),
+            {
+              method: "GET",
+              cache: "no-store",
+              redirect: "follow",
+              headers: {
+                "Accept":
+                  "application/json,text/plain,*/*"
+              }
             }
-          }
-        );
+          );
 
 
         if (!response.ok) {
@@ -1561,15 +1573,14 @@
         }
 
 
-        /* -----------------------------------------------------
-           READ RESPONSE AS TEXT FIRST
-           ----------------------------------------------------- */
-
         const rawText =
           await response.text();
 
 
-        if (!rawText || !rawText.trim()) {
+        if (
+          !rawText ||
+          !rawText.trim()
+        ) {
 
           throw new Error(
             "استجابة فارغة من Google Sheets"
@@ -1586,7 +1597,7 @@
           data =
             JSON.parse(rawText);
 
-        } catch (jsonError) {
+        } catch (e) {
 
           console.error(
             "Google Apps Script response:",
@@ -1599,10 +1610,6 @@
 
         }
 
-
-        /* -----------------------------------------------------
-           STATUS
-           ----------------------------------------------------- */
 
         if (
           !data ||
@@ -1617,10 +1624,6 @@
         }
 
 
-        /* -----------------------------------------------------
-           STORE DATA
-           ----------------------------------------------------- */
-
         summary =
           data.summary || {};
 
@@ -1631,10 +1634,6 @@
             : [];
 
 
-        /* -----------------------------------------------------
-           TYPE FILTER
-           ----------------------------------------------------- */
-
         if (
           filter &&
           filter.type
@@ -1642,7 +1641,9 @@
 
           allTransactions =
             allTransactions.filter(
-              t => t.type === filter.type
+              t =>
+                String(t.type) ===
+                String(filter.type)
             );
 
         }
@@ -1651,10 +1652,6 @@
         currentFilter =
           filter;
 
-
-        /* -----------------------------------------------------
-           RENDER
-           ----------------------------------------------------- */
 
         renderTotal();
 
@@ -1666,10 +1663,6 @@
 
         updatePrintFilterBtn();
 
-
-        /* -----------------------------------------------------
-           SUCCESS TOAST
-           ----------------------------------------------------- */
 
         if (!silent) {
 
@@ -1742,7 +1735,11 @@
           </div>
 
           <div
-            class="text-2xl font-black force-ltr ${usd >= 0 ? "text-white" : "text-rose-300"}"
+            class="text-2xl font-black force-ltr ${
+              usd >= 0
+                ? "text-white"
+                : "text-rose-300"
+            }"
           >
             ${formatNumber(usd)}
           </div>
@@ -1759,7 +1756,11 @@
           </div>
 
           <div
-            class="text-2xl font-black force-ltr ${tryTotal >= 0 ? "text-white" : "text-rose-300"}"
+            class="text-2xl font-black force-ltr ${
+              tryTotal >= 0
+                ? "text-white"
+                : "text-rose-300"
+            }"
           >
             ${formatNumber(tryTotal)}
           </div>
@@ -1767,6 +1768,7 @@
         </div>
 
       `;
+
     }
 
 
@@ -1826,7 +1828,9 @@
                 curr => {
 
                   const val =
-                    Number(data[curr] ?? 0);
+                    Number(
+                      data[curr] ?? 0
+                    );
 
 
                   return `
@@ -2023,7 +2027,10 @@
                       : "text-rose-200"
                   } truncate"
                 >
-                  ${escapeHTML(op.description || "بدون وصف")}
+                  ${escapeHTML(
+                    op.description ||
+                    "بدون وصف"
+                  )}
                 </span>
 
 
@@ -2037,7 +2044,9 @@
                 <span
                   class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400"
                 >
-                  ${escapeHTML(op.currency || "—")}
+                  ${escapeHTML(
+                    op.currency || "—"
+                  )}
                 </span>
 
               </div>
@@ -2131,7 +2140,11 @@
           new Date(op.date);
 
 
-        if (!Number.isNaN(d.getTime())) {
+        if (
+          !Number.isNaN(
+            d.getTime()
+          )
+        ) {
 
           dateFull =
             d.toLocaleString(
@@ -2186,7 +2199,9 @@
               class="font-bold text-lg force-ltr"
             >
               ${formatNumber(op.amount)}
-              ${escapeHTML(op.currency || "")}
+              ${escapeHTML(
+                op.currency || ""
+              )}
             </span>
 
           </div>
@@ -2229,7 +2244,9 @@
           <div
             class="bg-slate-800/60 rounded-xl px-4 py-3 font-medium"
           >
-            ${escapeHTML(op.description || "—")}
+            ${escapeHTML(
+              op.description || "—"
+            )}
           </div>
 
         </div>
@@ -2266,7 +2283,9 @@
           >
             ${
               op.exchange_rate
-                ? formatNumber(op.exchange_rate)
+                ? formatNumber(
+                    op.exchange_rate
+                  )
                 : "—"
             }
           </div>
@@ -2293,7 +2312,9 @@
           isIncome
             ? "+"
             : "−"
-        }${formatNumber(op.amount)} ${op.currency || ""}`;
+        }${formatNumber(
+          op.amount
+        )} ${op.currency || ""}`;
 
 
       $("p-amount").style.color =
@@ -2333,7 +2354,9 @@
 
       $("p-rate").textContent =
         op.exchange_rate
-          ? formatNumber(op.exchange_rate)
+          ? formatNumber(
+              op.exchange_rate
+            )
           : "—";
 
 
@@ -2358,27 +2381,103 @@
 
 
     /* =========================================================
+       PREPARE PRINT
+       ========================================================= */
+
+    function preparePrint(
+      mode
+    ) {
+
+      if (
+        printResetTimer
+      ) {
+
+        clearTimeout(
+          printResetTimer
+        );
+
+        printResetTimer =
+          null;
+
+      }
+
+
+      document.body.classList.remove(
+        "printing-single",
+        "printing-filter"
+      );
+
+
+      $("printSheet").style.display =
+        "none";
+
+
+      $("filterPrintSheet").style.display =
+        "none";
+
+
+      $("printSheet").classList.add(
+        "hidden"
+      );
+
+
+      $("filterPrintSheet").classList.add(
+        "hidden"
+      );
+
+
+      /*
+       * نغلق المودال قبل الطباعة.
+       * لا نحتاج أن يظهر المودال في ورقة الطباعة.
+       */
+
+      closeModal();
+
+
+      if (
+        mode === "single"
+      ) {
+
+        $("printSheet").classList.remove(
+          "hidden"
+        );
+
+        $("printSheet").style.display =
+          "block";
+
+
+        document.body.classList.add(
+          "printing-single"
+        );
+
+      } else {
+
+        $("filterPrintSheet").classList.remove(
+          "hidden"
+        );
+
+        $("filterPrintSheet").style.display =
+          "block";
+
+
+        document.body.classList.add(
+          "printing-filter"
+        );
+
+      }
+
+    }
+
+
+    /* =========================================================
        PRINT SINGLE
        ========================================================= */
 
     function printSingle() {
 
-      const printSheet =
-        $("printSheet");
-
-
-      if (!printSheet) {
-
-        showToast(
-          "تعذر تجهيز الطباعة",
-          true
-        );
-
-        return;
-      }
-
-
-      if (!currentTransaction) {
+      if (
+        !currentTransaction
+      ) {
 
         showToast(
           "لم يتم تحديد العملية",
@@ -2389,50 +2488,28 @@
       }
 
 
-      /* -------------------------------------------------------
-         RESET PRINT STATE
-         ------------------------------------------------------- */
+      if (
+        !$("printSheet")
+      ) {
 
-      document.body.classList.remove(
-        "printing-single",
-        "printing-filter"
+        showToast(
+          "تعذر تجهيز الطباعة",
+          true
+        );
+
+        return;
+      }
+
+
+      preparePrint(
+        "single"
       );
 
 
-      $("filterPrintSheet").style.display =
-        "none";
-
-
-      $("filterPrintSheet").classList.add(
-        "hidden"
-      );
-
-
-      /* -------------------------------------------------------
-         SHOW PRINT SHEET
-         ------------------------------------------------------- */
-
-      printSheet.classList.remove(
-        "hidden"
-      );
-
-
-      printSheet.style.display =
-        "block";
-
-
-      /* -------------------------------------------------------
-         ACTIVATE PRINT MODE
-         ------------------------------------------------------- */
-
-      document.body.classList.add(
-        "printing-single"
-      );
-
-
-      /* -------------------------------------------------------
-         PRINT
-         ------------------------------------------------------- */
+      /*
+       * ننتظر حتى يقوم المتصفح بتحديث DOM
+       * قبل استدعاء الطباعة.
+       */
 
       requestAnimationFrame(
         () => {
@@ -2443,10 +2520,28 @@
               setTimeout(
                 () => {
 
-                  window.print();
+                  try {
+
+                    window.print();
+
+                  } catch (err) {
+
+                    console.error(
+                      "print error:",
+                      err
+                    );
+
+                    showToast(
+                      "تعذر فتح نافذة الطباعة",
+                      true
+                    );
+
+                    resetPrintState();
+
+                  }
 
                 },
-                250
+                350
               );
 
             }
@@ -2465,7 +2560,9 @@
     function printFilterReport() {
 
       if (
-        !Array.isArray(allTransactions) ||
+        !Array.isArray(
+          allTransactions
+        ) ||
         allTransactions.length === 0
       ) {
 
@@ -2481,10 +2578,6 @@
       let filterInfo = [];
 
 
-      /* -------------------------------------------------------
-         DATE
-         ------------------------------------------------------- */
-
       if (
         currentFilter?.from ||
         currentFilter?.to
@@ -2492,18 +2585,16 @@
 
         filterInfo.push(
           `الفترة: ${
-            currentFilter.from || "..."
+            currentFilter.from ||
+            "..."
           } ← ${
-            currentFilter.to || "..."
+            currentFilter.to ||
+            "..."
           }`
         );
 
       }
 
-
-      /* -------------------------------------------------------
-         FUND
-         ------------------------------------------------------- */
 
       if (
         currentFilter?.fund
@@ -2524,10 +2615,6 @@
       }
 
 
-      /* -------------------------------------------------------
-         CURRENCY
-         ------------------------------------------------------- */
-
       if (
         currentFilter?.currency
       ) {
@@ -2540,10 +2627,6 @@
 
       }
 
-
-      /* -------------------------------------------------------
-         TYPE
-         ------------------------------------------------------- */
 
       if (
         currentFilter?.type
@@ -2562,10 +2645,6 @@
       }
 
 
-      /* -------------------------------------------------------
-         ROWS
-         ------------------------------------------------------- */
-
       const rows =
         allTransactions
           .map(
@@ -2576,7 +2655,9 @@
 
 
               const dateStr =
-                formatDateOnly(op.date);
+                formatDateOnly(
+                  op.date
+                );
 
 
               return `
@@ -2604,7 +2685,9 @@
                   >
                     ${
                       escapeHTML(
-                        FUND_NAMES[op.fund]
+                        FUND_NAMES[
+                          op.fund
+                        ]
                         ||
                         op.fund
                         ||
@@ -2669,7 +2752,9 @@
                       isIncome
                         ? "+"
                         : "−"
-                    }${formatNumber(op.amount)}
+                    }${formatNumber(
+                      op.amount
+                    )}
                   </td>
 
                 </tr>
@@ -2680,10 +2765,6 @@
           )
           .join("");
 
-
-      /* -------------------------------------------------------
-         REPORT HTML
-         ------------------------------------------------------- */
 
       $("filterPrintSheet").innerHTML = `
 
@@ -2742,7 +2823,8 @@
             filterInfo.length
               ? filterInfo
                   .map(
-                    x => escapeHTML(x)
+                    x =>
+                      escapeHTML(x)
                   )
                   .join(
                     " &nbsp;|&nbsp; "
@@ -2876,49 +2958,10 @@
       `;
 
 
-      /* -------------------------------------------------------
-         RESET SINGLE PRINT
-         ------------------------------------------------------- */
-
-      $("printSheet").style.display =
-        "none";
-
-
-      $("printSheet").classList.add(
-        "hidden"
+      preparePrint(
+        "filter"
       );
 
-
-      /* -------------------------------------------------------
-         SHOW FILTER PRINT
-         ------------------------------------------------------- */
-
-      $("filterPrintSheet").classList.remove(
-        "hidden"
-      );
-
-
-      $("filterPrintSheet").style.display =
-        "block";
-
-
-      /* -------------------------------------------------------
-         PRINT MODE
-         ------------------------------------------------------- */
-
-      document.body.classList.remove(
-        "printing-single"
-      );
-
-
-      document.body.classList.add(
-        "printing-filter"
-      );
-
-
-      /* -------------------------------------------------------
-         PRINT
-         ------------------------------------------------------- */
 
       requestAnimationFrame(
         () => {
@@ -2929,10 +2972,28 @@
               setTimeout(
                 () => {
 
-                  window.print();
+                  try {
+
+                    window.print();
+
+                  } catch (err) {
+
+                    console.error(
+                      "filter print error:",
+                      err
+                    );
+
+                    showToast(
+                      "تعذر فتح نافذة الطباعة",
+                      true
+                    );
+
+                    resetPrintState();
+
+                  }
 
                 },
-                250
+                350
               );
 
             }
@@ -2945,10 +3006,24 @@
 
 
     /* =========================================================
-       AFTER PRINT
+       RESET PRINT STATE
        ========================================================= */
 
     function resetPrintState() {
+
+      if (
+        printResetTimer
+      ) {
+
+        clearTimeout(
+          printResetTimer
+        );
+
+        printResetTimer =
+          null;
+
+      }
+
 
       document.body.classList.remove(
         "printing-single",
@@ -2960,26 +3035,102 @@
         "none";
 
 
+      $("filterPrintSheet").style.display =
+        "none";
+
+
       $("printSheet").classList.add(
         "hidden"
       );
-
-
-      $("filterPrintSheet").style.display =
-        "none";
 
 
       $("filterPrintSheet").classList.add(
         "hidden"
       );
 
+
+      $("printSheet").setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
+
+      $("filterPrintSheet").setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
     }
 
 
+    /* =========================================================
+       AFTER PRINT
+       ========================================================= */
+
     window.addEventListener(
       "afterprint",
-      resetPrintState
+      () => {
+
+        resetPrintState();
+
+      }
     );
+
+
+    /*
+     * بعض نسخ Safari على iPhone قد لا تعطي afterprint
+     * بالشكل المتوقع دائمًا.
+     *
+     * لذلك نضيف مراقبة بسيطة لحالة print.
+     */
+
+    if (
+      window.matchMedia
+    ) {
+
+      const printMedia =
+        window.matchMedia(
+          "print"
+        );
+
+
+      const handlePrintMedia =
+        event => {
+
+          if (
+            !event.matches
+          ) {
+
+            setTimeout(
+              resetPrintState,
+              300
+            );
+
+          }
+
+        };
+
+
+      if (
+        printMedia.addEventListener
+      ) {
+
+        printMedia.addEventListener(
+          "change",
+          handlePrintMedia
+        );
+
+      } else if (
+        printMedia.addListener
+      ) {
+
+        printMedia.addListener(
+          handlePrintMedia
+        );
+
+      }
+
+    }
 
 
     /* =========================================================
@@ -3071,7 +3222,9 @@
 
       if (
         currentFilter &&
-        Array.isArray(allTransactions) &&
+        Array.isArray(
+          allTransactions
+        ) &&
         allTransactions.length > 0
       ) {
 
@@ -3170,10 +3323,6 @@
           : null;
 
 
-      /* -------------------------------------------------------
-         VALIDATION
-         ------------------------------------------------------- */
-
       if (!description) {
 
         highlight(
@@ -3212,7 +3361,9 @@
         exchange_rate !== null
         &&
         (
-          !Number.isFinite(exchange_rate)
+          !Number.isFinite(
+            exchange_rate
+          )
           ||
           exchange_rate < 0
         )
@@ -3230,10 +3381,6 @@
         return;
       }
 
-
-      /* -------------------------------------------------------
-         BUTTON
-         ------------------------------------------------------- */
 
       const btn =
         $("submitBtn");
@@ -3260,10 +3407,6 @@
 
       try {
 
-        /* -----------------------------------------------------
-           PAYLOAD
-           ----------------------------------------------------- */
-
         const payload = {
 
           fund,
@@ -3286,10 +3429,6 @@
         };
 
 
-        /* -----------------------------------------------------
-           POST TO GOOGLE APPS SCRIPT
-           ----------------------------------------------------- */
-
         const response =
           await fetch(
             SCRIPT_URL,
@@ -3302,7 +3441,9 @@
               },
 
               body:
-                JSON.stringify(payload),
+                JSON.stringify(
+                  payload
+                ),
 
               redirect:
                 "follow"
@@ -3313,7 +3454,8 @@
         if (!response.ok) {
 
           throw new Error(
-            "HTTP " + response.status
+            "HTTP " +
+            response.status
           );
 
         }
@@ -3370,14 +3512,14 @@
         }
 
 
-        /* -----------------------------------------------------
-           SUCCESS
-           ----------------------------------------------------- */
-
         showToast(
           type === "income"
-            ? `تم إيداع ${formatNumber(amount)}`
-            : `تم خصم ${formatNumber(amount)}`
+            ? `تم إيداع ${formatNumber(
+                amount
+              )}`
+            : `تم خصم ${formatNumber(
+                amount
+              )}`
         );
 
 
@@ -3396,10 +3538,6 @@
         $("exchange_rate").value =
           "";
 
-
-        /* -----------------------------------------------------
-           RELOAD HISTORY
-           ----------------------------------------------------- */
 
         await loadData(
           currentFilter,
@@ -3702,7 +3840,9 @@
 
         if (
           e.key === "Escape" &&
-          !$("txModal").classList.contains("hidden")
+          !$("txModal").classList.contains(
+            "hidden"
+          )
         ) {
 
           closeModal();
