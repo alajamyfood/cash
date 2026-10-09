@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>صناديق العجمي</title>
-
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0d9488">
@@ -14,11 +13,9 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png">
   <link rel="icon" type="image/png" sizes="16x16" href="icon-192.png">
-
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-
   <style>
     * { font-family: 'Cairo', system-ui, sans-serif; }
     body {
@@ -49,8 +46,6 @@
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: #1e293b; }
     ::-webkit-scrollbar-thumb { background: #0d9488; border-radius: 10px; }
-
-    /* إخفاء أزرار الـ spinner */
     input[type="number"]::-webkit-outer-spin-button,
     input[type="number"]::-webkit-inner-spin-button {
       -webkit-appearance: none;
@@ -60,17 +55,12 @@
       -moz-appearance: textfield;
       appearance: textfield;
     }
-
-    /* ========== Print Styles ========== */
-    /* الطباعة تتم في نافذة مستقلة لتكون موثوقة على الهاتف والكمبيوتر. */
     .print-sheet,
     .filter-print-sheet { display: none !important; }
   </style>
 </head>
 <body class="pb-28 pt-5 px-4 sm:px-6">
-
   <div class="max-w-2xl mx-auto">
-
     <!-- Header -->
     <header class="flex items-center justify-between mb-7">
       <div class="flex items-center gap-3">
@@ -159,8 +149,16 @@
       </div>
     </section>
 
-    <!-- Filter -->
-    <section class="bg-slate-900/70 border border-slate-800 rounded-3xl p-5 shadow-xl mb-6">
+    <!-- Toggle Filter Button -->
+    <div class="mb-4">
+      <button id="toggleFilterBtn" onclick="toggleFilter()" class="w-full bg-slate-800/80 hover:bg-slate-700 border border-slate-700 py-3.5 rounded-2xl font-bold text-sm transition flex items-center justify-center gap-2 text-teal-300">
+        <i class="fa-solid fa-filter"></i>
+        إظهار الفلتر
+      </button>
+    </div>
+
+    <!-- Filter Section (مخفي افتراضياً) -->
+    <section id="filterSection" class="hidden bg-slate-900/70 border border-slate-800 rounded-3xl p-5 shadow-xl mb-6">
       <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
         <i class="fa-solid fa-filter text-teal-400"></i>
         فلتر متقدم
@@ -206,7 +204,6 @@
         <button onclick="applyFilter()" class="flex-1 bg-teal-600 hover:bg-teal-500 py-3 rounded-xl font-bold text-sm transition">تطبيق</button>
         <button onclick="clearFilter()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold text-sm transition">مسح</button>
       </div>
-
       <button id="printFilterBtn" onclick="printFilterReport()" class="hidden w-full mt-3 bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
         <i class="fa-solid fa-print"></i>
         طباعة تقرير الفلتر
@@ -229,8 +226,6 @@
   <!-- Transaction Modal -->
   <div id="txModal" class="fixed inset-0 z-50 hidden modal-bg flex items-end sm:items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md max-h-[92vh] overflow-y-auto shadow-2xl fade-in">
-      
-      <!-- Screen View -->
       <div class="p-6 no-print">
         <div class="flex items-center justify-between mb-5">
           <h3 class="text-xl font-bold">تفاصيل العملية</h3>
@@ -247,7 +242,6 @@
         </div>
       </div>
 
-      <!-- Print Single Transaction (clean - no duplication) -->
       <div id="printSheet" class="hidden" style="display:none;">
         <div style="text-align:center; margin-bottom:18px;">
           <img src="logo.png" alt="العجمي" style="height:55px; margin:0 auto 6px;" onerror="this.style.display='none'">
@@ -274,10 +268,8 @@
     </div>
   </div>
 
-  <!-- Filter Report Print Sheet -->
   <div id="filterPrintSheet" class="hidden"></div>
 
-  <!-- Toast -->
   <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl text-white font-medium shadow-2xl flex items-center gap-3 z-50 min-w-[260px] justify-center hidden toast-in">
     <i id="toastIcon" class="fa-solid fa-circle-check text-lg"></i>
     <span id="toastMsg">تم</span>
@@ -286,19 +278,16 @@
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfTUufVVRWApjRXqP0sSyUZ5bOKIEBdVYP1h9di2FGJG-dRv_rIjfJVjXreFOVqoOFqw/exec";
     let currentTransaction = null;
-
     const FUND_NAMES = {
       gaziantep: "عنتاب",
       istanbul: "اسطنبول",
       aleppo: "حلب"
     };
-
     const FUND_CURRENCIES = {
       gaziantep: ["USD", "TRY"],
       istanbul: ["USD", "TRY"],
       aleppo: ["USD"]
     };
-
     let currentFilter = null;
     let allTransactions = [];
     let summary = {};
@@ -309,10 +298,21 @@
       return Number(num || 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
     }
 
+    function toggleFilter() {
+      const section = $("filterSection");
+      const btn = $("toggleFilterBtn");
+      if (section.classList.contains("hidden")) {
+        section.classList.remove("hidden");
+        btn.innerHTML = `<i class="fa-solid fa-filter"></i> إخفاء الفلتر`;
+      } else {
+        section.classList.add("hidden");
+        btn.innerHTML = `<i class="fa-solid fa-filter"></i> إظهار الفلتر`;
+      }
+    }
+
     async function loadData(filter = null, silent = false) {
       try {
         if (!silent) showToast("جاري التحميل...", false, true);
-
         let url = SCRIPT_URL;
         const params = new URLSearchParams();
         if (filter) {
@@ -322,26 +322,20 @@
           if (filter.currency) params.append("currency", filter.currency);
         }
         if ([...params].length) url += "?" + params.toString();
-
         const res = await fetch(url);
         const data = await res.json();
-
         if (data.status !== "success") throw new Error(data.message || "خطأ في جلب البيانات");
-
         summary = data.summary || {};
         allTransactions = data.transactions || [];
-
         if (filter && filter.type) {
           allTransactions = allTransactions.filter(t => t.type === filter.type);
         }
-
         currentFilter = filter;
         renderTotal();
         renderFunds();
         renderHistory();
         updateFilterStatus();
         updatePrintFilterBtn();
-
         if (!silent) showToast(filter ? "تم تطبيق الفلتر" : "تم التحديث", false);
       } catch (err) {
         console.error(err);
@@ -352,11 +346,10 @@
     function renderTotal() {
       const usd = (summary.gaziantep?.USD || 0) + (summary.istanbul?.USD || 0) + (summary.aleppo?.USD || 0);
       const tryTotal = (summary.gaziantep?.TRY || 0) + (summary.istanbul?.TRY || 0);
-
       $("totalBalances").innerHTML = `
         <div class="bg-black/25 rounded-2xl p-4 text-center">
           <div class="text-teal-100/70 text-xs mb-1">إجمالي الدولار</div>
-          <div class="text-2xl font-black force-ltr ${usd >= 0 ? 'text-white' : 'text-rose-300'}">${formatNumber(usd)}</div>
+          <div class="text-2xl font-black force-ltr ${usd >= 0 ? 'text-white' : 'text-rose-300'}">$${formatNumber(usd)}</div>
         </div>
         <div class="bg-black/25 rounded-2xl p-4 text-center">
           <div class="text-teal-100/70 text-xs mb-1">إجمالي التركي</div>
@@ -368,26 +361,22 @@
     function renderFunds() {
       const container = $("fundsSummary");
       container.innerHTML = "";
-
       const funds = [
         { key: "gaziantep", name: "صندوق عنتاب", icon: "🏙️", colors: "from-teal-700 to-teal-900" },
         { key: "istanbul", name: "صندوق اسطنبول", icon: "🌉", colors: "from-cyan-700 to-cyan-900" },
         { key: "aleppo", name: "صندوق حلب", icon: "🏰", colors: "from-emerald-700 to-emerald-900" }
       ];
-
       funds.forEach(f => {
         const data = summary[f.key] || {};
         const currencies = FUND_CURRENCIES[f.key];
-
         let balancesHTML = currencies.map(curr => {
           const val = data[curr] ?? 0;
           return `
             <div class="flex items-center justify-between">
               <span class="text-slate-300 text-sm">${curr === "USD" ? "دولار" : "تركي"}</span>
-              <span class="font-bold text-lg force-ltr ${val >= 0 ? "text-teal-300" : "text-rose-400"}">${formatNumber(val)}</span>
+              <span class="font-bold text-lg force-ltr ${val >= 0 ? "text-teal-300" : "text-rose-400"}">${curr === "USD" ? "$" : ""}${formatNumber(val)}</span>
             </div>`;
         }).join("");
-
         const card = document.createElement("div");
         card.className = `rounded-3xl p-5 bg-gradient-to-br ${f.colors} border border-white/5 shadow-xl fade-in`;
         card.innerHTML = `
@@ -407,7 +396,6 @@
     function renderHistory() {
       const cont = $("historyList");
       cont.innerHTML = "";
-
       if (allTransactions.length === 0) {
         cont.innerHTML = `
           <div class="text-center py-16 text-slate-500">
@@ -416,17 +404,14 @@
           </div>`;
         return;
       }
-
       allTransactions.forEach(op => {
         const isIncome = op.type === "income";
         const fundName = FUND_NAMES[op.fund] || op.fund;
-
         let dateStr = "—";
         if (op.date) {
           const d = new Date(op.date);
           dateStr = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} - ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
         }
-
         const div = document.createElement("div");
         div.className = `flex gap-3 items-start bg-slate-900/60 border ${isIncome ? "border-green-900/40" : "border-red-900/40"} rounded-2xl p-4 fade-in cursor-pointer active:scale-[0.98] transition`;
         div.onclick = () => openModal(op);
@@ -459,7 +444,6 @@
       currentTransaction = op;
       const isIncome = op.type === "income";
       const fundName = FUND_NAMES[op.fund] || op.fund;
-
       let dateStr = "—";
       let dateFull = "—";
       if (op.date) {
@@ -467,11 +451,10 @@
         dateStr = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} - ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
         dateFull = d.toLocaleString("ar-SY", { dateStyle: "full", timeStyle: "short" });
       }
-
       $("modalContent").innerHTML = `
         <div class="bg-slate-800/60 rounded-2xl p-4 space-y-3">
           <div class="flex justify-between"><span class="text-slate-400">النوع</span><span class="font-bold ${isIncome ? 'text-green-400' : 'text-red-400'}">${isIncome ? 'إيداع' : 'خصم'}</span></div>
-          <div class="flex justify-between"><span class="text-slate-400">المبلغ</span><span class="font-bold text-lg force-ltr">${formatNumber(op.amount)} ${op.currency}</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">المبلغ</span><span class="font-bold text-lg force-ltr ${isIncome ? 'text-green-400' : 'text-red-400'}">${isIncome ? '+' : '−'}${formatNumber(op.amount)} ${op.currency}</span></div>
           <div class="flex justify-between"><span class="text-slate-400">الصندوق</span><span class="font-medium">${fundName}</span></div>
           <div class="flex justify-between"><span class="text-slate-400">التاريخ</span><span class="text-sm force-ltr">${dateStr}</span></div>
         </div>
@@ -488,7 +471,6 @@
           <div class="bg-slate-800/60 rounded-xl px-4 py-3 force-ltr">${op.exchange_rate ? formatNumber(op.exchange_rate) : "—"}</div>
         </div>
       `;
-
       $("p-type").textContent = isIncome ? "إيداع" : "خصم";
       $("p-type").style.color = isIncome ? "#16a34a" : "#dc2626";
       $("p-amount").textContent = (isIncome ? "+" : "−") + formatNumber(op.amount);
@@ -499,7 +481,6 @@
       $("p-desc").textContent = op.description || "—";
       $("p-notes").textContent = (op.notes && op.notes.trim() !== "") ? op.notes : "—";
       $("p-rate").textContent = op.exchange_rate ? formatNumber(op.exchange_rate) : "—";
-
       $("txModal").classList.remove("hidden");
     }
 
@@ -522,16 +503,13 @@
         showToast("تعذر تجهيز الطباعة", true);
         return false;
       }
-
       const popup = window.open("", "_blank");
       if (!popup) {
         showToast("تم حظر نافذة الطباعة • اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى", true);
         return false;
       }
-
       const baseHref = escapeHTML(document.baseURI);
       const reportHTML = sheetElement.innerHTML;
-
       popup.document.open();
       popup.document.write(`<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -544,12 +522,8 @@
   <style>
     * { box-sizing: border-box; }
     html, body {
-      margin: 0;
-      padding: 0;
-      background: #fff;
-      color: #111;
-      font-family: 'Cairo', Arial, sans-serif;
-      direction: rtl;
+      margin: 0; padding: 0; background: #fff; color: #111;
+      font-family: 'Cairo', Arial, sans-serif; direction: rtl;
     }
     body {
       padding: 12mm;
@@ -558,10 +532,8 @@
     }
     .print-container { width: 100%; max-width: 100%; margin: 0 auto; }
     .force-ltr {
-      direction: ltr !important;
-      unicode-bidi: embed !important;
-      text-align: left !important;
-      white-space: nowrap !important;
+      direction: ltr !important; unicode-bidi: embed !important;
+      text-align: left !important; white-space: nowrap !important;
       font-variant-numeric: tabular-nums !important;
     }
     table { width: 100%; border-collapse: collapse; }
@@ -569,41 +541,24 @@
     tr, td, th { break-inside: avoid; page-break-inside: avoid; }
     img { max-width: 100%; }
     .print-actions {
-      position: fixed;
-      top: 14px;
-      left: 14px;
-      display: flex;
-      gap: 8px;
-      z-index: 9999;
-      direction: rtl;
+      position: fixed; top: 14px; left: 14px; display: flex; gap: 8px; z-index: 9999; direction: rtl;
     }
     .print-actions button {
-      border: 0;
-      border-radius: 10px;
-      padding: 10px 16px;
-      font: 700 14px 'Cairo', Arial, sans-serif;
-      cursor: pointer;
-      background: #0d9488;
-      color: #fff;
-      box-shadow: 0 3px 12px rgba(0,0,0,.16);
+      border: 0; border-radius: 10px; padding: 10px 16px;
+      font: 700 14px 'Cairo', Arial, sans-serif; cursor: pointer;
+      background: #0d9488; color: #fff; box-shadow: 0 3px 12px rgba(0,0,0,.16);
     }
     .print-actions button.secondary { background: #475569; }
     @media print {
       @page { size: A4 portrait; margin: 12mm; }
-      html, body {
-        width: 100%; min-width: 0; margin: 0; padding: 0; background: #fff;
-      }
+      html, body { width: 100%; min-width: 0; margin: 0; padding: 0; background: #fff; }
       .print-actions { display: none !important; }
       .print-container { width: 100%; max-width: 100%; }
     }
     @media screen and (max-width: 640px) {
       body { padding: 18px; }
       .print-actions {
-        position: sticky;
-        top: 0;
-        left: auto;
-        justify-content: center;
-        margin: -4px 0 18px;
+        position: sticky; top: 0; left: auto; justify-content: center; margin: -4px 0 18px;
       }
     }
   </style>
@@ -613,57 +568,29 @@
     <button type="button" id="printNow">🖨️ طباعة</button>
     <button type="button" id="closePrint" class="secondary">إغلاق</button>
   </div>
-  <main class="print-container">
-    ${reportHTML}
-  </main>
+  <main class="print-container">${reportHTML}</main>
   <script>
     (function () {
       function doPrint() {
-        try {
-          window.focus();
-          window.print();
-        } catch (e) {
-          console.error(e);
-        }
+        try { window.focus(); window.print(); } catch (e) { console.error(e); }
       }
-
       document.getElementById('printNow').addEventListener('click', doPrint);
-      document.getElementById('closePrint').addEventListener('click', function () {
-        window.close();
-      });
-
+      document.getElementById('closePrint').addEventListener('click', function () { window.close(); });
       function waitForImagesAndPrint() {
         var images = Array.prototype.slice.call(document.images || []);
-        if (!images.length) {
-          setTimeout(doPrint, 350);
-          return;
-        }
-
+        if (!images.length) { setTimeout(doPrint, 350); return; }
         var pending = images.filter(function (img) { return !img.complete; });
-        if (!pending.length) {
-          setTimeout(doPrint, 350);
-          return;
-        }
-
+        if (!pending.length) { setTimeout(doPrint, 350); return; }
         var remaining = pending.length;
-        var done = function () {
-          remaining -= 1;
-          if (remaining <= 0) setTimeout(doPrint, 250);
-        };
-
+        var done = function () { remaining -= 1; if (remaining <= 0) setTimeout(doPrint, 250); };
         pending.forEach(function (img) {
           img.addEventListener('load', done, { once: true });
           img.addEventListener('error', done, { once: true });
         });
-
         setTimeout(doPrint, 1800);
       }
-
-      if (document.readyState === 'complete') {
-        waitForImagesAndPrint();
-      } else {
-        window.addEventListener('load', waitForImagesAndPrint, { once: true });
-      }
+      if (document.readyState === 'complete') { waitForImagesAndPrint(); }
+      else { window.addEventListener('load', waitForImagesAndPrint, { once: true }); }
     })();
   <\/script>
 </body>
@@ -731,15 +658,12 @@
       const description = $("description").value.trim();
       const notes = $("notes").value.trim();
       const exchange_rate = $("exchange_rate").value ? Number($("exchange_rate").value) : null;
-
       if (!description) { highlight($("description")); return showToast("الوصف مطلوب", true); }
       if (!amount || amount <= 0) { highlight($("amount")); return showToast("أدخل مبلغ صحيح", true); }
-
       const btn = $("submitBtn");
       const original = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...`;
-
       try {
         const payload = { fund, currency, type, amount, description, notes, exchange_rate, date: new Date().toISOString() };
         const res = await fetch(SCRIPT_URL, {
@@ -749,7 +673,6 @@
         });
         const data = await res.json();
         if (data.status !== "success") throw new Error(data.message || "فشل الحفظ");
-
         showToast(type === "income" ? `تم إيداع ${formatNumber(amount)}` : `تم خصم ${formatNumber(amount)}`);
         $("amount").value = "";
         $("description").value = "";
@@ -770,14 +693,12 @@
       const fund = $("filterFund").value;
       const currency = $("filterCurrency").value;
       const type = $("filterType").value;
-
       const filter = {};
       if (from) filter.from = from;
       if (to) filter.to = to;
       if (fund) filter.fund = fund;
       if (currency) filter.currency = currency;
       if (type) filter.type = type;
-
       if (Object.keys(filter).length === 0) return showToast("اختر معيار فلترة واحد على الأقل", true);
       loadData(filter);
     }
@@ -792,229 +713,68 @@
     }
 
     function printFilterReport() {
-  if (!allTransactions.length) {
-    return showToast("لا توجد عمليات للطباعة", true);
-  }
-
-  let filterInfo = [];
-
-  if (currentFilter?.from || currentFilter?.to) {
-    filterInfo.push(
-      `الفترة: ${currentFilter.from || "..."} ← ${currentFilter.to || "..."}`
-    );
-  }
-
-  if (currentFilter?.fund) {
-    filterInfo.push(
-      "الصندوق: " + FUND_NAMES[currentFilter.fund]
-    );
-  }
-
-  if (currentFilter?.currency) {
-    filterInfo.push(
-      "العملة: " + currentFilter.currency
-    );
-  }
-
-  if (currentFilter?.type) {
-    filterInfo.push(
-      "النوع: " +
-      (currentFilter.type === "income" ? "إيداع" : "خصم")
-    );
-  }
-
-  const rows = allTransactions.map(op => {
-    const isIncome = op.type === "income";
-
-    const d = op.date ? new Date(op.date) : null;
-
-    const dateStr = d
-      ? `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`
-      : "—";
-
-    return `
-      <tr>
-        <td style="
-          padding:7px 6px;
-          border-bottom:1px solid #e5e7eb;
-          font-size:12px;
-          white-space:nowrap;
-        ">
-          ${dateStr}
-        </td>
-
-        <td style="
-          padding:7px 6px;
-          border-bottom:1px solid #e5e7eb;
-          font-size:12px;
-        ">
-          ${FUND_NAMES[op.fund] || op.fund || "—"}
-        </td>
-
-        <td style="
-          padding:7px 6px;
-          border-bottom:1px solid #e5e7eb;
-          font-size:12px;
-          word-break:break-word;
-        ">
-          ${op.description || "—"}
-        </td>
-
-        <td style="
-          padding:7px 6px;
-          border-bottom:1px solid #e5e7eb;
-          font-size:12px;
-          text-align:center;
-        ">
-          ${op.currency || "—"}
-        </td>
-
-        <td style="
-          padding:7px 6px;
-          border-bottom:1px solid #e5e7eb;
-          font-size:12px;
-          text-align:center;
-          font-weight:700;
-          color:${isIncome ? "#16a34a" : "#dc2626"};
-        "
-        class="force-ltr">
-          ${isIncome ? "+" : "−"}${formatNumber(op.amount)}
-        </td>
-      </tr>
-    `;
-  }).join("");
-
-  $("filterPrintSheet").innerHTML = `
-    <div style="
-      text-align:center;
-      margin-bottom:16px;
-    ">
-      <img
-        src="logo.png"
-        alt="العجمي"
-        style="height:50px; margin:0 auto 6px;"
-        onerror="this.style.display='none'"
-      >
-
-      <div style="
-        font-size:17px;
-        font-weight:900;
-      ">
-        شركة العجمي
-      </div>
-
-      <div style="
-        font-size:11px;
-        color:#666;
-      ">
-        تقرير العمليات المفلترة
-      </div>
-    </div>
-
-    <div style="
-      background:#f8fafc;
-      padding:10px 14px;
-      border-radius:8px;
-      margin-bottom:16px;
-      font-size:12px;
-      color:#334155;
-    ">
-      ${filterInfo.join(" &nbsp;|&nbsp; ") || "جميع العمليات"}
-
-      <div style="margin-top:4px;">
-        عدد العمليات:
-        <strong>${allTransactions.length}</strong>
-      </div>
-    </div>
-
-    <table style="
-      width:100%;
-      border-collapse:collapse;
-      table-layout:fixed;
-    ">
-
-      <thead>
-        <tr style="
-          background:#0d9488;
-          color:white;
-        ">
-          <th style="
-            padding:8px 6px;
-            font-size:12px;
-            text-align:right;
-            width:16%;
-          ">
-            التاريخ
-          </th>
-
-          <th style="
-            padding:8px 6px;
-            font-size:12px;
-            text-align:right;
-            width:17%;
-          ">
-            الصندوق
-          </th>
-
-          <th style="
-            padding:8px 6px;
-            font-size:12px;
-            text-align:right;
-            width:37%;
-          ">
-            الوصف
-          </th>
-
-          <th style="
-            padding:8px 6px;
-            font-size:12px;
-            text-align:center;
-            width:12%;
-          ">
-            العملة
-          </th>
-
-          <th style="
-            padding:8px 6px;
-            font-size:12px;
-            text-align:center;
-            width:18%;
-          ">
-            المبلغ
-          </th>
-        </tr>
-      </thead>
-
-      <tbody>
-        ${rows}
-      </tbody>
-
-    </table>
-
-    <div
-      class="report-footer"
-      style="
-        border-top:1px solid #ddd;
-        margin:20px 0 8px;
-        padding-top:8px;
-      "
-    >
-      <div style="
-        text-align:center;
-        font-size:10px;
-        color:#888;
-      ">
-        العجمي • منذ 1989 • تم الطباعة من نظام إدارة الصناديق
-      </div>
-    </div>
-  `;
-
-  // فتح التقرير في نافذة طباعة مستقلة، بدون طباعة صفحة التطبيق نفسها.
-  openDedicatedPrintWindow(
-    $("filterPrintSheet"),
-    "تقرير العمليات - العجمي"
-  );
-}
+      if (!allTransactions.length) {
+        return showToast("لا توجد عمليات للطباعة", true);
+      }
+      let filterInfo = [];
+      if (currentFilter?.from || currentFilter?.to) {
+        filterInfo.push(`الفترة: ${currentFilter.from || "..."} ← ${currentFilter.to || "..."}`);
+      }
+      if (currentFilter?.fund) {
+        filterInfo.push("الصندوق: " + FUND_NAMES[currentFilter.fund]);
+      }
+      if (currentFilter?.currency) {
+        filterInfo.push("العملة: " + currentFilter.currency);
+      }
+      if (currentFilter?.type) {
+        filterInfo.push("النوع: " + (currentFilter.type === "income" ? "إيداع" : "خصم"));
+      }
+      const rows = allTransactions.map(op => {
+        const isIncome = op.type === "income";
+        const d = op.date ? new Date(op.date) : null;
+        const dateStr = d
+          ? `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`
+          : "—";
+        return `
+          <tr>
+            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; white-space:nowrap;">${dateStr}</td>
+            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px;">${FUND_NAMES[op.fund] || op.fund || "—"}</td>
+            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; word-break:break-word;">${op.description || "—"}</td>
+            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; text-align:center;">${op.currency || "—"}</td>
+            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; text-align:center; font-weight:700; color:${isIncome ? "#16a34a" : "#dc2626"};" class="force-ltr">
+              ${isIncome ? "+" : "−"}${formatNumber(op.amount)}
+            </td>
+          </tr>
+        `;
+      }).join("");
+      $("filterPrintSheet").innerHTML = `
+        <div style="text-align:center; margin-bottom:16px;">
+          <img src="logo.png" alt="العجمي" style="height:50px; margin:0 auto 6px;" onerror="this.style.display='none'">
+          <div style="font-size:17px; font-weight:900;">شركة العجمي</div>
+          <div style="font-size:11px; color:#666;">تقرير العمليات المفلترة</div>
+        </div>
+        <div style="background:#f8fafc; padding:10px 14px; border-radius:8px; margin-bottom:16px; font-size:12px; color:#334155;">
+          ${filterInfo.join(" &nbsp;|&nbsp; ") || "جميع العمليات"}
+          <div style="margin-top:4px;">عدد العمليات: <strong>${allTransactions.length}</strong></div>
+        </div>
+        <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+          <thead>
+            <tr style="background:#0d9488; color:white;">
+              <th style="padding:8px 6px; font-size:12px; text-align:right; width:16%;">التاريخ</th>
+              <th style="padding:8px 6px; font-size:12px; text-align:right; width:17%;">الصندوق</th>
+              <th style="padding:8px 6px; font-size:12px; text-align:right; width:37%;">الوصف</th>
+              <th style="padding:8px 6px; font-size:12px; text-align:center; width:12%;">العملة</th>
+              <th style="padding:8px 6px; font-size:12px; text-align:center; width:18%;">المبلغ</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="report-footer" style="border-top:1px solid #ddd; margin:20px 0 8px; padding-top:8px;">
+          <div style="text-align:center; font-size:10px; color:#888;">العجمي • منذ 1989 • تم الطباعة من نظام إدارة الصناديق</div>
+        </div>
+      `;
+      openDedicatedPrintWindow($("filterPrintSheet"), "تقرير العمليات - العجمي");
+    }
 
     function highlight(el) {
       el.classList.add("!border-rose-500", "!ring-2", "!ring-rose-500/30");
@@ -1045,7 +805,8 @@
     $("amount").addEventListener("keypress", e => {
       if (e.key === "Enter") addOperation();
     });
-      updateOperationTypeColor();
-</script>
+
+    updateOperationTypeColor();
+  </script>
 </body>
 </html>
