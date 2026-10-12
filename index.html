@@ -157,7 +157,7 @@
       </button>
     </div>
 
-    <!-- Filter Section (مخفي افتراضياً) -->
+    <!-- Filter Section -->
     <section id="filterSection" class="hidden bg-slate-900/70 border border-slate-800 rounded-3xl p-5 shadow-xl mb-6">
       <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
         <i class="fa-solid fa-filter text-teal-400"></i>
@@ -241,7 +241,6 @@
           <button onclick="closeModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold">إغلاق</button>
         </div>
       </div>
-
       <div id="printSheet" class="hidden" style="display:none;">
         <div style="text-align:center; margin-bottom:18px;">
           <img src="logo.png" alt="العجمي" style="height:55px; margin:0 auto 6px;" onerror="this.style.display='none'">
@@ -716,63 +715,133 @@
       if (!allTransactions.length) {
         return showToast("لا توجد عمليات للطباعة", true);
       }
-      let filterInfo = [];
+
+      // بناء معلومات الفلتر بشكل مرتب
+      let periodText = "الكل";
       if (currentFilter?.from || currentFilter?.to) {
-        filterInfo.push(`الفترة: ${currentFilter.from || "..."} ← ${currentFilter.to || "..."}`);
+        periodText = `${currentFilter.from || "..."} ← ${currentFilter.to || "..."}`;
       }
-      if (currentFilter?.fund) {
-        filterInfo.push("الصندوق: " + FUND_NAMES[currentFilter.fund]);
-      }
-      if (currentFilter?.currency) {
-        filterInfo.push("العملة: " + currentFilter.currency);
-      }
-      if (currentFilter?.type) {
-        filterInfo.push("النوع: " + (currentFilter.type === "income" ? "إيداع" : "خصم"));
-      }
+
+      const fundText = currentFilter?.fund 
+        ? FUND_NAMES[currentFilter.fund] 
+        : "الكل";
+
+      const currencyText = currentFilter?.currency || "الكل";
+      const typeText = currentFilter?.type 
+        ? (currentFilter.type === "income" ? "إيداع" : "خصم") 
+        : "الكل";
+
+      // حساب المجاميع
+      const totals = {};
+      allTransactions.forEach(op => {
+        const curr = op.currency || "USD";
+        if (!totals[curr]) {
+          totals[curr] = { income: 0, expense: 0 };
+        }
+        if (op.type === "income") {
+          totals[curr].income += Number(op.amount) || 0;
+        } else {
+          totals[curr].expense += Number(op.amount) || 0;
+        }
+      });
+
+      let summaryRows = "";
+      Object.keys(totals).forEach(curr => {
+        const t = totals[curr];
+        const net = t.income - t.expense;
+        const currLabel = curr === "USD" ? "دولار (USD)" : "تركي (TRY)";
+        summaryRows += `
+          <tr>
+            <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:center; font-weight:600;">${currLabel}</td>
+            <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:center; color:#16a34a; font-weight:700;" class="force-ltr">+${formatNumber(t.income)}</td>
+            <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:center; color:#dc2626; font-weight:700;" class="force-ltr">−${formatNumber(t.expense)}</td>
+            <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:center; font-weight:800; color:${net >= 0 ? '#16a34a' : '#dc2626'};" class="force-ltr">
+              ${net >= 0 ? '+' : '−'}${formatNumber(Math.abs(net))}
+            </td>
+          </tr>
+        `;
+      });
+
       const rows = allTransactions.map(op => {
         const isIncome = op.type === "income";
         const d = op.date ? new Date(op.date) : null;
         const dateStr = d
           ? `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`
           : "—";
+        const notes = (op.notes && op.notes.trim() !== "") ? op.notes : "—";
         return `
           <tr>
-            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; white-space:nowrap;">${dateStr}</td>
-            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px;">${FUND_NAMES[op.fund] || op.fund || "—"}</td>
-            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; word-break:break-word;">${op.description || "—"}</td>
-            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; text-align:center;">${op.currency || "—"}</td>
-            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; text-align:center; font-weight:700; color:${isIncome ? "#16a34a" : "#dc2626"};" class="force-ltr">
+            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; white-space:nowrap; vertical-align:top;">
+              ${dateStr}
+            </td>
+            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; word-break:break-word; vertical-align:top;">${op.description || "—"}</td>
+            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; word-break:break-word; vertical-align:top; color:#475569;">${notes}</td>
+            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; text-align:center; vertical-align:top;">${op.currency || "—"}</td>
+            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; text-align:center; font-weight:700; color:${isIncome ? "#16a34a" : "#dc2626"}; vertical-align:top;" class="force-ltr">
               ${isIncome ? "+" : "−"}${formatNumber(op.amount)}
             </td>
           </tr>
         `;
       }).join("");
+
       $("filterPrintSheet").innerHTML = `
         <div style="text-align:center; margin-bottom:16px;">
           <img src="logo.png" alt="العجمي" style="height:50px; margin:0 auto 6px;" onerror="this.style.display='none'">
           <div style="font-size:17px; font-weight:900;">شركة العجمي</div>
           <div style="font-size:11px; color:#666;">تقرير العمليات المفلترة</div>
         </div>
-        <div style="background:#f8fafc; padding:10px 14px; border-radius:8px; margin-bottom:16px; font-size:12px; color:#334155;">
-          ${filterInfo.join(" &nbsp;|&nbsp; ") || "جميع العمليات"}
-          <div style="margin-top:4px;">عدد العمليات: <strong>${allTransactions.length}</strong></div>
+
+        <!-- معلومات الفلتر -->
+        <div style="background:#f8fafc; padding:12px 16px; border-radius:10px; margin-bottom:18px; font-size:13px; color:#334155; border:1px solid #e2e8f0;">
+          <div style="display:flex; flex-wrap:wrap; gap:12px 24px; justify-content:center; text-align:center;">
+            <div><span style="color:#64748b;">الفترة:</span> <strong>${periodText}</strong></div>
+            <div><span style="color:#64748b;">الصندوق:</span> <strong style="color:#0d9488;">${fundText}</strong></div>
+            <div><span style="color:#64748b;">العملة:</span> <strong>${currencyText}</strong></div>
+            <div><span style="color:#64748b;">النوع:</span> <strong>${typeText}</strong></div>
+          </div>
+          <div style="margin-top:8px; text-align:center; font-size:12px; color:#64748b;">
+            عدد العمليات: <strong style="color:#0f172a;">${allTransactions.length}</strong>
+          </div>
         </div>
+
         <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
           <thead>
             <tr style="background:#0d9488; color:white;">
               <th style="padding:8px 6px; font-size:12px; text-align:right; width:16%;">التاريخ</th>
-              <th style="padding:8px 6px; font-size:12px; text-align:right; width:17%;">الصندوق</th>
-              <th style="padding:8px 6px; font-size:12px; text-align:right; width:37%;">الوصف</th>
+              <th style="padding:8px 6px; font-size:12px; text-align:right; width:30%;">الوصف</th>
+              <th style="padding:8px 6px; font-size:12px; text-align:right; width:28%;">الملاحظات</th>
               <th style="padding:8px 6px; font-size:12px; text-align:center; width:12%;">العملة</th>
-              <th style="padding:8px 6px; font-size:12px; text-align:center; width:18%;">المبلغ</th>
+              <th style="padding:8px 6px; font-size:12px; text-align:center; width:14%;">المبلغ</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
-        <div class="report-footer" style="border-top:1px solid #ddd; margin:20px 0 8px; padding-top:8px;">
+
+        <!-- الملخص النهائي -->
+        <div style="margin-top:28px;">
+          <div style="font-size:14px; font-weight:800; margin-bottom:10px; color:#0d9488; border-bottom:2px solid #0d9488; padding-bottom:6px; text-align:center;">
+            ملخص التقرير • الناتج النهائي
+          </div>
+          <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead>
+              <tr style="background:#f1f5f9;">
+                <th style="padding:10px 8px; text-align:center; width:25%;">العملة</th>
+                <th style="padding:10px 8px; text-align:center; width:25%;">إجمالي الإيداع</th>
+                <th style="padding:10px 8px; text-align:center; width:25%;">إجمالي الخصم</th>
+                <th style="padding:10px 8px; text-align:center; width:25%;">الصافي</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${summaryRows}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="report-footer" style="border-top:1px solid #ddd; margin:24px 0 8px; padding-top:10px;">
           <div style="text-align:center; font-size:10px; color:#888;">العجمي • منذ 1989 • تم الطباعة من نظام إدارة الصناديق</div>
         </div>
       `;
+
       openDedicatedPrintWindow($("filterPrintSheet"), "تقرير العمليات - العجمي");
     }
 
