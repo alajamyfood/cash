@@ -74,7 +74,7 @@
 </head>
 <body class="pb-28 pt-5 px-4 sm:px-6">
 
-  <!-- ===================== شاشة كلمة المرور ===================== -->
+  <!-- شاشة كلمة المرور -->
   <div id="lockScreen">
     <div class="w-full max-w-sm bg-slate-900/90 border border-slate-700 rounded-3xl p-8 shadow-2xl text-center">
       <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-teal-600 to-teal-800 flex items-center justify-center text-3xl shadow-lg">
@@ -102,7 +102,7 @@
     </div>
   </div>
 
-  <!-- ===================== باقي التطبيق ===================== -->
+  <!-- التطبيق -->
   <div id="appContent" class="hidden max-w-2xl mx-auto">
     <!-- Header -->
     <header class="flex items-center justify-between mb-7">
@@ -328,7 +328,6 @@
         sessionStorage.setItem("alajamy_unlocked", "1");
         document.getElementById("lockScreen").classList.add("hidden");
         document.getElementById("appContent").classList.remove("hidden");
-        // تحميل البيانات بعد الدخول
         initApp();
       } else {
         error.classList.remove("hidden");
@@ -338,12 +337,10 @@
       }
     }
 
-    // الضغط على Enter
     document.getElementById("passwordInput").addEventListener("keypress", function(e) {
       if (e.key === "Enter") checkPassword();
     });
 
-    // التحقق عند التحميل
     window.addEventListener("load", () => {
       if (sessionStorage.getItem("alajamy_unlocked") === "1") {
         document.getElementById("lockScreen").classList.add("hidden");
@@ -577,20 +574,31 @@
         .replace(/'/g, "&#039;");
     }
 
+    // ===================== دالة الطباعة المحسنة للموبايل =====================
     function openDedicatedPrintWindow(sheetElement, title = "طباعة") {
       if (!sheetElement) {
         showToast("تعذر تجهيز الطباعة", true);
         return false;
       }
-      const popup = window.open("", "_blank");
-      if (!popup) {
-        showToast("تم حظر نافذة الطباعة • اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى", true);
-        return false;
-      }
-      const baseHref = escapeHTML(document.baseURI);
+
       const reportHTML = sheetElement.innerHTML;
-      popup.document.open();
-      popup.document.write(`<!DOCTYPE html>
+      const baseHref = escapeHTML(document.baseURI);
+
+      // إنشاء iframe مخفي للطباعة (يعمل ممتاز على الموبايل)
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      iframe.style.opacity = "0";
+      iframe.style.pointerEvents = "none";
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write(`<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
@@ -619,63 +627,38 @@
     thead { display: table-header-group; }
     tr, td, th { break-inside: avoid; page-break-inside: avoid; }
     img { max-width: 100%; }
-    .print-actions {
-      position: fixed; top: 14px; left: 14px; display: flex; gap: 8px; z-index: 9999; direction: rtl;
-    }
-    .print-actions button {
-      border: 0; border-radius: 10px; padding: 10px 16px;
-      font: 700 14px 'Cairo', Arial, sans-serif; cursor: pointer;
-      background: #0d9488; color: #fff; box-shadow: 0 3px 12px rgba(0,0,0,.16);
-    }
-    .print-actions button.secondary { background: #475569; }
     @media print {
       @page { size: A4 portrait; margin: 12mm; }
-      html, body { width: 100%; min-width: 0; margin: 0; padding: 0; background: #fff; }
-      .print-actions { display: none !important; }
-      .print-container { width: 100%; max-width: 100%; }
-    }
-    @media screen and (max-width: 640px) {
-      body { padding: 18px; }
-      .print-actions {
-        position: sticky; top: 0; left: auto; justify-content: center; margin: -4px 0 18px;
-      }
+      html, body { width: 100%; margin: 0; padding: 0; background: #fff; }
     }
   </style>
 </head>
 <body>
-  <div class="print-actions" aria-label="أدوات الطباعة">
-    <button type="button" id="printNow">🖨️ طباعة</button>
-    <button type="button" id="closePrint" class="secondary">إغلاق</button>
-  </div>
   <main class="print-container">${reportHTML}</main>
-  <script>
-    (function () {
-      function doPrint() {
-        try { window.focus(); window.print(); } catch (e) { console.error(e); }
-      }
-      document.getElementById('printNow').addEventListener('click', doPrint);
-      document.getElementById('closePrint').addEventListener('click', function () { window.close(); });
-      function waitForImagesAndPrint() {
-        var images = Array.prototype.slice.call(document.images || []);
-        if (!images.length) { setTimeout(doPrint, 350); return; }
-        var pending = images.filter(function (img) { return !img.complete; });
-        if (!pending.length) { setTimeout(doPrint, 350); return; }
-        var remaining = pending.length;
-        var done = function () { remaining -= 1; if (remaining <= 0) setTimeout(doPrint, 250); };
-        pending.forEach(function (img) {
-          img.addEventListener('load', done, { once: true });
-          img.addEventListener('error', done, { once: true });
-        });
-        setTimeout(doPrint, 1800);
-      }
-      if (document.readyState === 'complete') { waitForImagesAndPrint(); }
-      else { window.addEventListener('load', waitForImagesAndPrint, { once: true }); }
-    })();
-  <\/script>
 </body>
 </html>`);
-      popup.document.close();
-      try { popup.focus(); } catch (e) {}
+      doc.close();
+
+      // انتظار تحميل الصور ثم الطباعة
+      const printIframe = () => {
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        } catch (e) {
+          console.error(e);
+          showToast("تعذر فتح نافذة الطباعة", true);
+        }
+        // حذف الـ iframe بعد فترة
+        setTimeout(() => {
+          if (iframe && iframe.parentNode) {
+            iframe.parentNode.removeChild(iframe);
+          }
+        }, 2000);
+      };
+
+      // ننتظر قليلاً حتى يتحمل المحتوى والصور
+      setTimeout(printIframe, 600);
+
       return true;
     }
 
