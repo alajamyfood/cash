@@ -54,7 +54,6 @@
       -moz-appearance: textfield;
       appearance: textfield;
     }
-
     #lockScreen {
       position: fixed;
       inset: 0;
@@ -66,37 +65,6 @@
       padding: 20px;
     }
     #lockScreen.hidden { display: none; }
-
-    #printArea {
-      display: none;
-    }
-
-    @media print {
-      body * {
-        visibility: hidden !important;
-      }
-      #printArea, #printArea * {
-        visibility: visible !important;
-      }
-      #printArea {
-        display: block !important;
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        background: white !important;
-        color: #111 !important;
-        padding: 10mm;
-        font-family: 'Cairo', Arial, sans-serif;
-        direction: rtl;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-      @page {
-        size: A4 portrait;
-        margin: 10mm;
-      }
-    }
   </style>
 </head>
 <body class="pb-28 pt-5 px-4 sm:px-6">
@@ -303,8 +271,6 @@
       </div>
     </div>
   </div>
-
-  <div id="printArea"></div>
 
   <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl text-white font-medium shadow-2xl flex items-center gap-3 z-50 min-w-[260px] justify-center hidden toast-in">
     <i id="toastIcon" class="fa-solid fa-circle-check text-lg"></i>
@@ -545,29 +511,101 @@
       currentTransaction = null;
     }
 
-    // ===================== دالة الطباعة النهائية (تعمل على الموبايل) =====================
+    // ===================== دالة الطباعة النهائية =====================
     function doPrint(htmlContent) {
-  const printArea = document.getElementById("printArea");
-  printArea.innerHTML = htmlContent;
+      const fullHtml = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>طباعة - العجمي</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Cairo', Arial, sans-serif;
+      direction: rtl;
+      background: #fff;
+      color: #111;
+      padding: 12mm;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .print-actions {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      display: flex;
+      gap: 10px;
+      z-index: 9999;
+      direction: rtl;
+    }
+    .print-actions button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 18px;
+      font: 700 14px 'Cairo', Arial, sans-serif;
+      cursor: pointer;
+      box-shadow: 0 3px 12px rgba(0,0,0,.15);
+    }
+    .btn-print {
+      background: #0d9488;
+      color: white;
+    }
+    .btn-close {
+      background: #475569;
+      color: white;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    th, td {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    img { max-width: 100%; }
+    @media print {
+      .print-actions { display: none !important; }
+      @page { size: A4 portrait; margin: 10mm; }
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-actions">
+    <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+    <button class="btn-close" onclick="window.close()">إغلاق</button>
+  </div>
 
-  // إجبار إعادة الرسم
-  void printArea.offsetHeight;
+  ${htmlContent}
 
-  // استدعاء الطباعة مباشرة
-  window.print();
+  <script>
+    // طباعة تلقائية بعد تحميل الصفحة (اختياري)
+    window.onload = function() {
+      setTimeout(function() {
+        // window.print();  // لو بدك طباعة تلقائية فك التعليق
+      }, 600);
+    };
+  <\/script>
+</body>
+</html>`;
 
-  // مسح المحتوى بعد انتهاء الطباعة (أفضل طريقة)
-  const clearPrint = () => {
-    printArea.innerHTML = "";
-    window.removeEventListener("afterprint", clearPrint);
-  };
+      const blob = new Blob([fullHtml], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const printWindow = window.open(url, "_blank");
 
-  // نضيف المستمع
-  window.addEventListener("afterprint", clearPrint);
+      if (!printWindow) {
+        showToast("اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى", true);
+        URL.revokeObjectURL(url);
+        return;
+      }
 
-  // fallback بعد 3 ثواني لو المتصفح ما دعم afterprint
-  setTimeout(clearPrint, 3000);
-}
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 20000);
+    }
 
     function printSingle() {
       if (!currentTransaction) {
@@ -594,38 +632,38 @@
         <div style="font-size:15px; font-weight:700; text-align:center; margin-bottom:16px;">تفاصيل العملية</div>
         <table style="width:100%; border-collapse:collapse; font-size:13px; line-height:1.7;">
           <tr>
-            <td style="padding:6px 0; color:#555; width:32%;">النوع</td>
-            <td style="padding:6px 0; font-weight:700; color:${isIncome ? '#16a34a' : '#dc2626'};">${isIncome ? 'إيداع' : 'خصم'}</td>
+            <td style="padding:7px 0; color:#555; width:32%;">النوع</td>
+            <td style="padding:7px 0; font-weight:700; color:${isIncome ? '#16a34a' : '#dc2626'};">${isIncome ? 'إيداع' : 'خصم'}</td>
           </tr>
           <tr>
-            <td style="padding:6px 0; color:#555;">المبلغ</td>
-            <td style="padding:6px 0; font-weight:700; font-size:16px; color:${isIncome ? '#16a34a' : '#dc2626'};">
+            <td style="padding:7px 0; color:#555;">المبلغ</td>
+            <td style="padding:7px 0; font-weight:700; font-size:16px; color:${isIncome ? '#16a34a' : '#dc2626'};">
               ${isIncome ? '+' : '−'}${formatNumber(op.amount)}
             </td>
           </tr>
           <tr>
-            <td style="padding:6px 0; color:#555;">العملة</td>
-            <td style="padding:6px 0;">${op.currency === "USD" ? "دولار أمريكي (USD)" : "ليرة تركية (TRY)"}</td>
+            <td style="padding:7px 0; color:#555;">العملة</td>
+            <td style="padding:7px 0;">${op.currency === "USD" ? "دولار أمريكي (USD)" : "ليرة تركية (TRY)"}</td>
           </tr>
           <tr>
-            <td style="padding:6px 0; color:#555;">الصندوق</td>
-            <td style="padding:6px 0;">صندوق ${fundName}</td>
+            <td style="padding:7px 0; color:#555;">الصندوق</td>
+            <td style="padding:7px 0;">صندوق ${fundName}</td>
           </tr>
           <tr>
-            <td style="padding:6px 0; color:#555;">التاريخ</td>
-            <td style="padding:6px 0;">${dateFull}</td>
+            <td style="padding:7px 0; color:#555;">التاريخ</td>
+            <td style="padding:7px 0;">${dateFull}</td>
           </tr>
           <tr>
-            <td style="padding:6px 0; color:#555; vertical-align:top;">الوصف</td>
-            <td style="padding:6px 0;">${op.description || "—"}</td>
+            <td style="padding:7px 0; color:#555; vertical-align:top;">الوصف</td>
+            <td style="padding:7px 0;">${op.description || "—"}</td>
           </tr>
           <tr>
-            <td style="padding:6px 0; color:#555; vertical-align:top;">الملاحظات</td>
-            <td style="padding:6px 0;">${(op.notes && op.notes.trim() !== "") ? op.notes : "—"}</td>
+            <td style="padding:7px 0; color:#555; vertical-align:top;">الملاحظات</td>
+            <td style="padding:7px 0;">${(op.notes && op.notes.trim() !== "") ? op.notes : "—"}</td>
           </tr>
           <tr>
-            <td style="padding:6px 0; color:#555;">سعر الصرف</td>
-            <td style="padding:6px 0;">${op.exchange_rate ? formatNumber(op.exchange_rate) : "—"}</td>
+            <td style="padding:7px 0; color:#555;">سعر الصرف</td>
+            <td style="padding:7px 0;">${op.exchange_rate ? formatNumber(op.exchange_rate) : "—"}</td>
           </tr>
         </table>
         <div style="border-top:1px solid #ddd; margin:22px 0 10px;"></div>
@@ -767,10 +805,10 @@
         const currLabel = curr === "USD" ? "دولار (USD)" : "تركي (TRY)";
         summaryRows += `
           <tr>
-            <td style="padding:9px 8px; border:1px solid #e2e8f0; text-align:center; font-weight:600; background:#f8fafc;">${currLabel}</td>
-            <td style="padding:9px 8px; border:1px solid #e2e8f0; text-align:center; color:#16a34a; font-weight:700;">+${formatNumber(t.income)}</td>
-            <td style="padding:9px 8px; border:1px solid #e2e8f0; text-align:center; color:#dc2626; font-weight:700;">−${formatNumber(t.expense)}</td>
-            <td style="padding:9px 8px; border:1px solid #e2e8f0; text-align:center; font-weight:800; color:${net >= 0 ? '#16a34a' : '#dc2626'};">
+            <td style="padding:10px 8px; border:1px solid #cbd5e1; text-align:center; font-weight:600; background:#f8fafc;">${currLabel}</td>
+            <td style="padding:10px 8px; border:1px solid #cbd5e1; text-align:center; color:#16a34a; font-weight:700;">+${formatNumber(t.income)}</td>
+            <td style="padding:10px 8px; border:1px solid #cbd5e1; text-align:center; color:#dc2626; font-weight:700;">−${formatNumber(t.expense)}</td>
+            <td style="padding:10px 8px; border:1px solid #cbd5e1; text-align:center; font-weight:800; color:${net >= 0 ? '#16a34a' : '#dc2626'};">
               ${net >= 0 ? '+' : '−'}${formatNumber(Math.abs(net))}
             </td>
           </tr>
@@ -784,11 +822,11 @@
         const notes = (op.notes && op.notes.trim() !== "") ? op.notes : "—";
         return `
           <tr>
-            <td style="padding:7px 6px; border:1px solid #e2e8f0; font-size:12px; white-space:nowrap;">${dateStr}</td>
-            <td style="padding:7px 6px; border:1px solid #e2e8f0; font-size:12px; word-break:break-word;">${op.description || "—"}</td>
-            <td style="padding:7px 6px; border:1px solid #e2e8f0; font-size:12px; word-break:break-word; color:#475569;">${notes}</td>
-            <td style="padding:7px 6px; border:1px solid #e2e8f0; font-size:12px; text-align:center;">${op.currency || "—"}</td>
-            <td style="padding:7px 6px; border:1px solid #e2e8f0; font-size:12px; text-align:center; font-weight:700; color:${isIncome ? '#16a34a' : '#dc2626'};">
+            <td style="padding:8px 6px; border:1px solid #e2e8f0; font-size:12px; white-space:nowrap; vertical-align:top;">${dateStr}</td>
+            <td style="padding:8px 6px; border:1px solid #e2e8f0; font-size:12px; word-break:break-word; vertical-align:top;">${op.description || "—"}</td>
+            <td style="padding:8px 6px; border:1px solid #e2e8f0; font-size:12px; word-break:break-word; vertical-align:top; color:#475569;">${notes}</td>
+            <td style="padding:8px 6px; border:1px solid #e2e8f0; font-size:12px; text-align:center; vertical-align:top;">${op.currency || "—"}</td>
+            <td style="padding:8px 6px; border:1px solid #e2e8f0; font-size:12px; text-align:center; font-weight:700; color:${isIncome ? '#16a34a' : '#dc2626'}; vertical-align:top;">
               ${isIncome ? "+" : "−"}${formatNumber(op.amount)}
             </td>
           </tr>
@@ -796,20 +834,20 @@
       }).join("");
 
       const html = `
-        <div style="text-align:center; margin-bottom:14px;">
-          <img src="logo.png" alt="العجمي" style="height:48px; margin:0 auto 5px;" onerror="this.style.display='none'">
+        <div style="text-align:center; margin-bottom:16px;">
+          <img src="logo.png" alt="العجمي" style="height:50px; margin:0 auto 6px;" onerror="this.style.display='none'">
           <div style="font-size:17px; font-weight:900;">شركة العجمي</div>
           <div style="font-size:11px; color:#666;">تقرير العمليات المفلترة</div>
         </div>
 
-        <div style="background:#f1f5f9; padding:10px 14px; border-radius:8px; margin-bottom:16px; font-size:12.5px; color:#334155; border:1px solid #e2e8f0;">
-          <div style="display:flex; flex-wrap:wrap; gap:10px 20px; justify-content:center; text-align:center;">
+        <div style="background:#f1f5f9; padding:12px 14px; border-radius:8px; margin-bottom:18px; font-size:13px; color:#334155; border:1px solid #e2e8f0;">
+          <div style="display:flex; flex-wrap:wrap; gap:12px 22px; justify-content:center; text-align:center;">
             <div><span style="color:#64748b;">الفترة:</span> <strong>${periodText}</strong></div>
             <div><span style="color:#64748b;">الصندوق:</span> <strong style="color:#0d9488;">${fundText}</strong></div>
             <div><span style="color:#64748b;">العملة:</span> <strong>${currencyText}</strong></div>
             <div><span style="color:#64748b;">النوع:</span> <strong>${typeText}</strong></div>
           </div>
-          <div style="margin-top:6px; text-align:center; font-size:12px; color:#64748b;">
+          <div style="margin-top:8px; text-align:center; font-size:12px; color:#64748b;">
             عدد العمليات: <strong style="color:#0f172a;">${allTransactions.length}</strong>
           </div>
         </div>
@@ -817,11 +855,11 @@
         <table style="width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px;">
           <thead>
             <tr>
-              <th style="padding:9px 6px; background:#0d9488; color:white; text-align:right; width:15%; border:1px solid #0d9488;">التاريخ</th>
-              <th style="padding:9px 6px; background:#0d9488; color:white; text-align:right; width:28%; border:1px solid #0d9488;">الوصف</th>
-              <th style="padding:9px 6px; background:#0d9488; color:white; text-align:right; width:27%; border:1px solid #0d9488;">الملاحظات</th>
-              <th style="padding:9px 6px; background:#0d9488; color:white; text-align:center; width:12%; border:1px solid #0d9488;">العملة</th>
-              <th style="padding:9px 6px; background:#0d9488; color:white; text-align:center; width:18%; border:1px solid #0d9488;">المبلغ</th>
+              <th style="padding:10px 6px; background:#0d9488; color:white; text-align:right; width:15%; border:1px solid #0d9488;">التاريخ</th>
+              <th style="padding:10px 6px; background:#0d9488; color:white; text-align:right; width:28%; border:1px solid #0d9488;">الوصف</th>
+              <th style="padding:10px 6px; background:#0d9488; color:white; text-align:right; width:27%; border:1px solid #0d9488;">الملاحظات</th>
+              <th style="padding:10px 6px; background:#0d9488; color:white; text-align:center; width:12%; border:1px solid #0d9488;">العملة</th>
+              <th style="padding:10px 6px; background:#0d9488; color:white; text-align:center; width:18%; border:1px solid #0d9488;">المبلغ</th>
             </tr>
           </thead>
           <tbody>
@@ -829,17 +867,17 @@
           </tbody>
         </table>
 
-        <div style="margin-top:26px;">
-          <div style="font-size:14px; font-weight:800; margin-bottom:10px; color:#0d9488; border-bottom:2px solid #0d9488; padding-bottom:5px; text-align:center;">
+        <div style="margin-top:28px;">
+          <div style="font-size:14px; font-weight:800; margin-bottom:12px; color:#0d9488; border-bottom:2px solid #0d9488; padding-bottom:6px; text-align:center;">
             ملخص التقرير • الناتج النهائي
           </div>
           <table style="width:100%; border-collapse:collapse; font-size:13px;">
             <thead>
               <tr>
-                <th style="padding:9px 8px; background:#0d9488; color:white; text-align:center; width:25%; border:1px solid #0d9488;">العملة</th>
-                <th style="padding:9px 8px; background:#0d9488; color:white; text-align:center; width:25%; border:1px solid #0d9488;">إجمالي الإيداع</th>
-                <th style="padding:9px 8px; background:#0d9488; color:white; text-align:center; width:25%; border:1px solid #0d9488;">إجمالي الخصم</th>
-                <th style="padding:9px 8px; background:#0d9488; color:white; text-align:center; width:25%; border:1px solid #0d9488;">الصافي</th>
+                <th style="padding:10px 8px; background:#0d9488; color:white; text-align:center; width:25%; border:1px solid #0d9488;">العملة</th>
+                <th style="padding:10px 8px; background:#0d9488; color:white; text-align:center; width:25%; border:1px solid #0d9488;">إجمالي الإيداع</th>
+                <th style="padding:10px 8px; background:#0d9488; color:white; text-align:center; width:25%; border:1px solid #0d9488;">إجمالي الخصم</th>
+                <th style="padding:10px 8px; background:#0d9488; color:white; text-align:center; width:25%; border:1px solid #0d9488;">الصافي</th>
               </tr>
             </thead>
             <tbody>
@@ -848,7 +886,7 @@
           </table>
         </div>
 
-        <div style="border-top:1px solid #ddd; margin:22px 0 8px; padding-top:8px;">
+        <div style="border-top:1px solid #ddd; margin:24px 0 8px; padding-top:10px;">
           <div style="text-align:center; font-size:10px; color:#888;">العجمي • منذ 1989 • تم الطباعة من نظام إدارة الصناديق</div>
         </div>
       `;
