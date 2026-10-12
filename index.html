@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>صناديق العجمي</title>
-  <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0d9488">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -56,7 +55,6 @@
       appearance: textfield;
     }
 
-    /* شاشة الحماية */
     #lockScreen {
       position: fixed;
       inset: 0;
@@ -69,7 +67,6 @@
     }
     #lockScreen.hidden { display: none; }
 
-    /* منطقة الطباعة */
     #printArea {
       display: none;
     }
@@ -121,10 +118,7 @@
         autocomplete="off"
       >
       
-      <button 
-        onclick="checkPassword()" 
-        class="w-full bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-500 hover:to-teal-600 py-3.5 rounded-2xl font-bold text-lg transition active:scale-[0.98]"
-      >
+      <button onclick="checkPassword()" class="w-full bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-500 hover:to-teal-600 py-3.5 rounded-2xl font-bold text-lg transition active:scale-[0.98]">
         دخول
       </button>
       
@@ -134,7 +128,6 @@
 
   <!-- التطبيق -->
   <div id="appContent" class="hidden max-w-2xl mx-auto">
-    <!-- Header -->
     <header class="flex items-center justify-between mb-7">
       <div class="flex items-center gap-3">
         <div class="w-14 h-14 rounded-2xl overflow-hidden bg-gradient-to-br from-teal-600 to-teal-800 shadow-lg shadow-teal-900/40 flex items-center justify-center">
@@ -151,7 +144,6 @@
       </button>
     </header>
 
-    <!-- Total Card -->
     <div id="totalCard" class="rounded-3xl p-5 mb-5 bg-gradient-to-br from-teal-800 via-teal-700 to-cyan-800 border border-teal-500/30 shadow-xl card-glow fade-in">
       <div class="flex items-center gap-3 mb-4">
         <div class="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center text-2xl">📊</div>
@@ -163,10 +155,8 @@
       <div class="grid grid-cols-2 gap-3" id="totalBalances"></div>
     </div>
 
-    <!-- Funds Summary -->
     <div class="grid grid-cols-1 gap-4 mb-7" id="fundsSummary"></div>
 
-    <!-- Add Operation -->
     <section class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 shadow-xl mb-6 card-glow">
       <h2 class="text-xl font-bold mb-5 flex items-center gap-2">
         <i class="fa-solid fa-plus-circle text-teal-400"></i>
@@ -222,7 +212,6 @@
       </div>
     </section>
 
-    <!-- Toggle Filter Button -->
     <div class="mb-4">
       <button id="toggleFilterBtn" onclick="toggleFilter()" class="w-full bg-slate-800/80 hover:bg-slate-700 border border-slate-700 py-3.5 rounded-2xl font-bold text-sm transition flex items-center justify-center gap-2 text-teal-300">
         <i class="fa-solid fa-filter"></i>
@@ -230,7 +219,6 @@
       </button>
     </div>
 
-    <!-- Filter Section -->
     <section id="filterSection" class="hidden bg-slate-900/70 border border-slate-800 rounded-3xl p-5 shadow-xl mb-6">
       <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
         <i class="fa-solid fa-filter text-teal-400"></i>
@@ -283,7 +271,6 @@
       </button>
     </section>
 
-    <!-- History -->
     <section>
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-bold flex items-center gap-2">
@@ -317,7 +304,6 @@
     </div>
   </div>
 
-  <!-- منطقة الطباعة -->
   <div id="printArea"></div>
 
   <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl text-white font-medium shadow-2xl flex items-center gap-3 z-50 min-w-[260px] justify-center hidden toast-in">
@@ -559,17 +545,29 @@
       currentTransaction = null;
     }
 
-    // ===================== دالة الطباعة النهائية =====================
+    // ===================== دالة الطباعة النهائية (تعمل على الموبايل) =====================
     function doPrint(htmlContent) {
-      const printArea = document.getElementById("printArea");
-      printArea.innerHTML = htmlContent;
-      setTimeout(() => {
-        window.print();
-        setTimeout(() => {
-          printArea.innerHTML = "";
-        }, 1500);
-      }, 400);
-    }
+  const printArea = document.getElementById("printArea");
+  printArea.innerHTML = htmlContent;
+
+  // إجبار إعادة الرسم
+  void printArea.offsetHeight;
+
+  // استدعاء الطباعة مباشرة
+  window.print();
+
+  // مسح المحتوى بعد انتهاء الطباعة (أفضل طريقة)
+  const clearPrint = () => {
+    printArea.innerHTML = "";
+    window.removeEventListener("afterprint", clearPrint);
+  };
+
+  // نضيف المستمع
+  window.addEventListener("afterprint", clearPrint);
+
+  // fallback بعد 3 ثواني لو المتصفح ما دعم afterprint
+  setTimeout(clearPrint, 3000);
+}
 
     function printSingle() {
       if (!currentTransaction) {
@@ -751,7 +749,6 @@
       const currencyText = currentFilter?.currency || "الكل";
       const typeText = currentFilter?.type ? (currentFilter.type === "income" ? "إيداع" : "خصم") : "الكل";
 
-      // حساب المجاميع
       const totals = {};
       allTransactions.forEach(op => {
         const curr = op.currency || "USD";
@@ -763,7 +760,6 @@
         }
       });
 
-      // صفوف الملخص
       let summaryRows = "";
       Object.keys(totals).forEach(curr => {
         const t = totals[curr];
@@ -781,7 +777,6 @@
         `;
       });
 
-      // صفوف العمليات
       const rows = allTransactions.map(op => {
         const isIncome = op.type === "income";
         const d = op.date ? new Date(op.date) : null;
