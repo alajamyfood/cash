@@ -55,8 +55,6 @@
       -moz-appearance: textfield;
       appearance: textfield;
     }
-    .print-sheet,
-    .filter-print-sheet { display: none !important; }
 
     /* شاشة الحماية */
     #lockScreen {
@@ -70,6 +68,38 @@
       padding: 20px;
     }
     #lockScreen.hidden { display: none; }
+
+    /* منطقة الطباعة */
+    #printArea {
+      display: none;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printArea, #printArea * {
+        visibility: visible !important;
+      }
+      #printArea {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white !important;
+        color: #111 !important;
+        padding: 10mm;
+        font-family: 'Cairo', Arial, sans-serif;
+        direction: rtl;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+    }
   </style>
 </head>
 <body class="pb-28 pt-5 px-4 sm:px-6">
@@ -269,7 +299,7 @@
   <!-- Transaction Modal -->
   <div id="txModal" class="fixed inset-0 z-50 hidden modal-bg flex items-end sm:items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md max-h-[92vh] overflow-y-auto shadow-2xl fade-in">
-      <div class="p-6 no-print">
+      <div class="p-6">
         <div class="flex items-center justify-between mb-5">
           <h3 class="text-xl font-bold">تفاصيل العملية</h3>
           <button onclick="closeModal()" class="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white">
@@ -284,33 +314,11 @@
           <button onclick="closeModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold">إغلاق</button>
         </div>
       </div>
-      <div id="printSheet" class="hidden" style="display:none;">
-        <div style="text-align:center; margin-bottom:18px;">
-          <img src="logo.png" alt="العجمي" style="height:55px; margin:0 auto 6px;" onerror="this.style.display='none'">
-          <div style="font-size:18px; font-weight:900;">شركة العجمي</div>
-          <div style="font-size:11px; color:#666;">صناديق الشركة • منذ 1989</div>
-        </div>
-        <div style="border-top:2px solid #0d9488; margin:12px 0 16px;"></div>
-        <div style="font-size:15px; font-weight:700; text-align:center; margin-bottom:16px;">تفاصيل العملية</div>
-        <table style="width:100%; border-collapse:collapse; font-size:13px; line-height:1.7;">
-          <tr><td style="padding:6px 0; color:#555; width:32%;">النوع</td><td style="padding:6px 0; font-weight:700;" id="p-type"></td></tr>
-          <tr><td style="padding:6px 0; color:#555;">المبلغ</td><td style="padding:6px 0; font-weight:700; font-size:16px;" class="force-ltr" id="p-amount"></td></tr>
-          <tr><td style="padding:6px 0; color:#555;">العملة</td><td style="padding:6px 0;" id="p-currency"></td></tr>
-          <tr><td style="padding:6px 0; color:#555;">الصندوق</td><td style="padding:6px 0;" id="p-fund"></td></tr>
-          <tr><td style="padding:6px 0; color:#555;">التاريخ</td><td style="padding:6px 0;" id="p-date"></td></tr>
-          <tr><td style="padding:6px 0; color:#555; vertical-align:top;">الوصف</td><td style="padding:6px 0;" id="p-desc"></td></tr>
-          <tr><td style="padding:6px 0; color:#555; vertical-align:top;">الملاحظات</td><td style="padding:6px 0;" id="p-notes"></td></tr>
-          <tr><td style="padding:6px 0; color:#555;">سعر الصرف</td><td style="padding:6px 0;" class="force-ltr" id="p-rate"></td></tr>
-        </table>
-        <div style="border-top:1px solid #ddd; margin:22px 0 10px;"></div>
-        <div style="text-align:center; font-size:10px; color:#888;">
-          العجمي • منذ 1989<br>تم الطباعة من نظام إدارة الصناديق
-        </div>
-      </div>
     </div>
   </div>
 
-  <div id="filterPrintSheet" class="hidden"></div>
+  <!-- منطقة الطباعة -->
+  <div id="printArea"></div>
 
   <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl text-white font-medium shadow-2xl flex items-center gap-3 z-50 min-w-[260px] justify-center hidden toast-in">
     <i id="toastIcon" class="fa-solid fa-circle-check text-lg"></i>
@@ -318,7 +326,6 @@
   </div>
 
   <script>
-    // ===================== كلمة المرور =====================
     const APP_PASSWORD = "161192";
 
     function checkPassword() {
@@ -351,7 +358,6 @@
       }
     });
 
-    // ===================== باقي الكود =====================
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfTUufVVRWApjRXqP0sSyUZ5bOKIEBdVYP1h9di2FGJG-dRv_rIjfJVjXreFOVqoOFqw/exec";
     let currentTransaction = null;
     const FUND_NAMES = {
@@ -521,11 +527,9 @@
       const isIncome = op.type === "income";
       const fundName = FUND_NAMES[op.fund] || op.fund;
       let dateStr = "—";
-      let dateFull = "—";
       if (op.date) {
         const d = new Date(op.date);
         dateStr = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} - ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
-        dateFull = d.toLocaleString("ar-SY", { dateStyle: "full", timeStyle: "short" });
       }
       $("modalContent").innerHTML = `
         <div class="bg-slate-800/60 rounded-2xl p-4 space-y-3">
@@ -547,16 +551,6 @@
           <div class="bg-slate-800/60 rounded-xl px-4 py-3 force-ltr">${op.exchange_rate ? formatNumber(op.exchange_rate) : "—"}</div>
         </div>
       `;
-      $("p-type").textContent = isIncome ? "إيداع" : "خصم";
-      $("p-type").style.color = isIncome ? "#16a34a" : "#dc2626";
-      $("p-amount").textContent = (isIncome ? "+" : "−") + formatNumber(op.amount);
-      $("p-amount").style.color = isIncome ? "#16a34a" : "#dc2626";
-      $("p-currency").textContent = op.currency === "USD" ? "دولار أمريكي (USD)" : "ليرة تركية (TRY)";
-      $("p-fund").textContent = "صندوق " + fundName;
-      $("p-date").textContent = dateFull;
-      $("p-desc").textContent = op.description || "—";
-      $("p-notes").textContent = (op.notes && op.notes.trim() !== "") ? op.notes : "—";
-      $("p-rate").textContent = op.exchange_rate ? formatNumber(op.exchange_rate) : "—";
       $("txModal").classList.remove("hidden");
     }
 
@@ -565,101 +559,16 @@
       currentTransaction = null;
     }
 
-    function escapeHTML(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    // ===================== دالة الطباعة المحسنة للموبايل =====================
-    function openDedicatedPrintWindow(sheetElement, title = "طباعة") {
-      if (!sheetElement) {
-        showToast("تعذر تجهيز الطباعة", true);
-        return false;
-      }
-
-      const reportHTML = sheetElement.innerHTML;
-      const baseHref = escapeHTML(document.baseURI);
-
-      // إنشاء iframe مخفي للطباعة (يعمل ممتاز على الموبايل)
-      const iframe = document.createElement("iframe");
-      iframe.style.position = "fixed";
-      iframe.style.right = "0";
-      iframe.style.bottom = "0";
-      iframe.style.width = "0";
-      iframe.style.height = "0";
-      iframe.style.border = "0";
-      iframe.style.opacity = "0";
-      iframe.style.pointerEvents = "none";
-      document.body.appendChild(iframe);
-
-      const doc = iframe.contentWindow.document;
-      doc.open();
-      doc.write(`<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <base href="${baseHref}">
-  <title>${escapeHTML(title)}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <style>
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0; padding: 0; background: #fff; color: #111;
-      font-family: 'Cairo', Arial, sans-serif; direction: rtl;
-    }
-    body {
-      padding: 12mm;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    .print-container { width: 100%; max-width: 100%; margin: 0 auto; }
-    .force-ltr {
-      direction: ltr !important; unicode-bidi: embed !important;
-      text-align: left !important; white-space: nowrap !important;
-      font-variant-numeric: tabular-nums !important;
-    }
-    table { width: 100%; border-collapse: collapse; }
-    thead { display: table-header-group; }
-    tr, td, th { break-inside: avoid; page-break-inside: avoid; }
-    img { max-width: 100%; }
-    @media print {
-      @page { size: A4 portrait; margin: 12mm; }
-      html, body { width: 100%; margin: 0; padding: 0; background: #fff; }
-    }
-  </style>
-</head>
-<body>
-  <main class="print-container">${reportHTML}</main>
-</body>
-</html>`);
-      doc.close();
-
-      // انتظار تحميل الصور ثم الطباعة
-      const printIframe = () => {
-        try {
-          iframe.contentWindow.focus();
-          iframe.contentWindow.print();
-        } catch (e) {
-          console.error(e);
-          showToast("تعذر فتح نافذة الطباعة", true);
-        }
-        // حذف الـ iframe بعد فترة
+    // ===================== دالة الطباعة النهائية =====================
+    function doPrint(htmlContent) {
+      const printArea = document.getElementById("printArea");
+      printArea.innerHTML = htmlContent;
+      setTimeout(() => {
+        window.print();
         setTimeout(() => {
-          if (iframe && iframe.parentNode) {
-            iframe.parentNode.removeChild(iframe);
-          }
-        }, 2000);
-      };
-
-      // ننتظر قليلاً حتى يتحمل المحتوى والصور
-      setTimeout(printIframe, 600);
-
-      return true;
+          printArea.innerHTML = "";
+        }, 1500);
+      }, 400);
     }
 
     function printSingle() {
@@ -667,12 +576,66 @@
         showToast("لم يتم تحديد العملية", true);
         return;
       }
-      const sheet = $("printSheet");
-      if (!sheet) {
-        showToast("تعذر تجهيز الطباعة", true);
-        return;
+
+      const op = currentTransaction;
+      const isIncome = op.type === "income";
+      const fundName = FUND_NAMES[op.fund] || op.fund;
+      let dateFull = "—";
+      if (op.date) {
+        const d = new Date(op.date);
+        dateFull = d.toLocaleString("ar-SY", { dateStyle: "full", timeStyle: "short" });
       }
-      openDedicatedPrintWindow(sheet, "تفاصيل العملية - العجمي");
+
+      const html = `
+        <div style="text-align:center; margin-bottom:18px;">
+          <img src="logo.png" alt="العجمي" style="height:55px; margin:0 auto 6px;" onerror="this.style.display='none'">
+          <div style="font-size:18px; font-weight:900;">شركة العجمي</div>
+          <div style="font-size:11px; color:#666;">صناديق الشركة • منذ 1989</div>
+        </div>
+        <div style="border-top:2px solid #0d9488; margin:12px 0 16px;"></div>
+        <div style="font-size:15px; font-weight:700; text-align:center; margin-bottom:16px;">تفاصيل العملية</div>
+        <table style="width:100%; border-collapse:collapse; font-size:13px; line-height:1.7;">
+          <tr>
+            <td style="padding:6px 0; color:#555; width:32%;">النوع</td>
+            <td style="padding:6px 0; font-weight:700; color:${isIncome ? '#16a34a' : '#dc2626'};">${isIncome ? 'إيداع' : 'خصم'}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0; color:#555;">المبلغ</td>
+            <td style="padding:6px 0; font-weight:700; font-size:16px; color:${isIncome ? '#16a34a' : '#dc2626'};">
+              ${isIncome ? '+' : '−'}${formatNumber(op.amount)}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0; color:#555;">العملة</td>
+            <td style="padding:6px 0;">${op.currency === "USD" ? "دولار أمريكي (USD)" : "ليرة تركية (TRY)"}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0; color:#555;">الصندوق</td>
+            <td style="padding:6px 0;">صندوق ${fundName}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0; color:#555;">التاريخ</td>
+            <td style="padding:6px 0;">${dateFull}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0; color:#555; vertical-align:top;">الوصف</td>
+            <td style="padding:6px 0;">${op.description || "—"}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0; color:#555; vertical-align:top;">الملاحظات</td>
+            <td style="padding:6px 0;">${(op.notes && op.notes.trim() !== "") ? op.notes : "—"}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0; color:#555;">سعر الصرف</td>
+            <td style="padding:6px 0;">${op.exchange_rate ? formatNumber(op.exchange_rate) : "—"}</td>
+          </tr>
+        </table>
+        <div style="border-top:1px solid #ddd; margin:22px 0 10px;"></div>
+        <div style="text-align:center; font-size:10px; color:#888;">
+          العجمي • منذ 1989<br>تم الطباعة من نظام إدارة الصناديق
+        </div>
+      `;
+      doPrint(html);
     }
 
     function updateFilterStatus() {
@@ -784,21 +747,15 @@
         periodText = `${currentFilter.from || "..."} ← ${currentFilter.to || "..."}`;
       }
 
-      const fundText = currentFilter?.fund 
-        ? FUND_NAMES[currentFilter.fund] 
-        : "الكل";
-
+      const fundText = currentFilter?.fund ? FUND_NAMES[currentFilter.fund] : "الكل";
       const currencyText = currentFilter?.currency || "الكل";
-      const typeText = currentFilter?.type 
-        ? (currentFilter.type === "income" ? "إيداع" : "خصم") 
-        : "الكل";
+      const typeText = currentFilter?.type ? (currentFilter.type === "income" ? "إيداع" : "خصم") : "الكل";
 
+      // حساب المجاميع
       const totals = {};
       allTransactions.forEach(op => {
         const curr = op.currency || "USD";
-        if (!totals[curr]) {
-          totals[curr] = { income: 0, expense: 0 };
-        }
+        if (!totals[curr]) totals[curr] = { income: 0, expense: 0 };
         if (op.type === "income") {
           totals[curr].income += Number(op.amount) || 0;
         } else {
@@ -806,6 +763,7 @@
         }
       });
 
+      // صفوف الملخص
       let summaryRows = "";
       Object.keys(totals).forEach(curr => {
         const t = totals[curr];
@@ -813,81 +771,80 @@
         const currLabel = curr === "USD" ? "دولار (USD)" : "تركي (TRY)";
         summaryRows += `
           <tr>
-            <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:center; font-weight:600;">${currLabel}</td>
-            <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:center; color:#16a34a; font-weight:700;" class="force-ltr">+${formatNumber(t.income)}</td>
-            <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:center; color:#dc2626; font-weight:700;" class="force-ltr">−${formatNumber(t.expense)}</td>
-            <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:center; font-weight:800; color:${net >= 0 ? '#16a34a' : '#dc2626'};" class="force-ltr">
+            <td style="padding:9px 8px; border:1px solid #e2e8f0; text-align:center; font-weight:600; background:#f8fafc;">${currLabel}</td>
+            <td style="padding:9px 8px; border:1px solid #e2e8f0; text-align:center; color:#16a34a; font-weight:700;">+${formatNumber(t.income)}</td>
+            <td style="padding:9px 8px; border:1px solid #e2e8f0; text-align:center; color:#dc2626; font-weight:700;">−${formatNumber(t.expense)}</td>
+            <td style="padding:9px 8px; border:1px solid #e2e8f0; text-align:center; font-weight:800; color:${net >= 0 ? '#16a34a' : '#dc2626'};">
               ${net >= 0 ? '+' : '−'}${formatNumber(Math.abs(net))}
             </td>
           </tr>
         `;
       });
 
+      // صفوف العمليات
       const rows = allTransactions.map(op => {
         const isIncome = op.type === "income";
         const d = op.date ? new Date(op.date) : null;
-        const dateStr = d
-          ? `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`
-          : "—";
+        const dateStr = d ? `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}` : "—";
         const notes = (op.notes && op.notes.trim() !== "") ? op.notes : "—";
         return `
           <tr>
-            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; white-space:nowrap; vertical-align:top;">
-              ${dateStr}
-            </td>
-            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; word-break:break-word; vertical-align:top;">${op.description || "—"}</td>
-            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; word-break:break-word; vertical-align:top; color:#475569;">${notes}</td>
-            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; text-align:center; vertical-align:top;">${op.currency || "—"}</td>
-            <td style="padding:7px 6px; border-bottom:1px solid #e5e7eb; font-size:12px; text-align:center; font-weight:700; color:${isIncome ? "#16a34a" : "#dc2626"}; vertical-align:top;" class="force-ltr">
+            <td style="padding:7px 6px; border:1px solid #e2e8f0; font-size:12px; white-space:nowrap;">${dateStr}</td>
+            <td style="padding:7px 6px; border:1px solid #e2e8f0; font-size:12px; word-break:break-word;">${op.description || "—"}</td>
+            <td style="padding:7px 6px; border:1px solid #e2e8f0; font-size:12px; word-break:break-word; color:#475569;">${notes}</td>
+            <td style="padding:7px 6px; border:1px solid #e2e8f0; font-size:12px; text-align:center;">${op.currency || "—"}</td>
+            <td style="padding:7px 6px; border:1px solid #e2e8f0; font-size:12px; text-align:center; font-weight:700; color:${isIncome ? '#16a34a' : '#dc2626'};">
               ${isIncome ? "+" : "−"}${formatNumber(op.amount)}
             </td>
           </tr>
         `;
       }).join("");
 
-      $("filterPrintSheet").innerHTML = `
-        <div style="text-align:center; margin-bottom:16px;">
-          <img src="logo.png" alt="العجمي" style="height:50px; margin:0 auto 6px;" onerror="this.style.display='none'">
+      const html = `
+        <div style="text-align:center; margin-bottom:14px;">
+          <img src="logo.png" alt="العجمي" style="height:48px; margin:0 auto 5px;" onerror="this.style.display='none'">
           <div style="font-size:17px; font-weight:900;">شركة العجمي</div>
           <div style="font-size:11px; color:#666;">تقرير العمليات المفلترة</div>
         </div>
 
-        <div style="background:#f8fafc; padding:12px 16px; border-radius:10px; margin-bottom:18px; font-size:13px; color:#334155; border:1px solid #e2e8f0;">
-          <div style="display:flex; flex-wrap:wrap; gap:12px 24px; justify-content:center; text-align:center;">
+        <div style="background:#f1f5f9; padding:10px 14px; border-radius:8px; margin-bottom:16px; font-size:12.5px; color:#334155; border:1px solid #e2e8f0;">
+          <div style="display:flex; flex-wrap:wrap; gap:10px 20px; justify-content:center; text-align:center;">
             <div><span style="color:#64748b;">الفترة:</span> <strong>${periodText}</strong></div>
             <div><span style="color:#64748b;">الصندوق:</span> <strong style="color:#0d9488;">${fundText}</strong></div>
             <div><span style="color:#64748b;">العملة:</span> <strong>${currencyText}</strong></div>
             <div><span style="color:#64748b;">النوع:</span> <strong>${typeText}</strong></div>
           </div>
-          <div style="margin-top:8px; text-align:center; font-size:12px; color:#64748b;">
+          <div style="margin-top:6px; text-align:center; font-size:12px; color:#64748b;">
             عدد العمليات: <strong style="color:#0f172a;">${allTransactions.length}</strong>
           </div>
         </div>
 
-        <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+        <table style="width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px;">
           <thead>
-            <tr style="background:#0d9488; color:white;">
-              <th style="padding:8px 6px; font-size:12px; text-align:right; width:16%;">التاريخ</th>
-              <th style="padding:8px 6px; font-size:12px; text-align:right; width:30%;">الوصف</th>
-              <th style="padding:8px 6px; font-size:12px; text-align:right; width:28%;">الملاحظات</th>
-              <th style="padding:8px 6px; font-size:12px; text-align:center; width:12%;">العملة</th>
-              <th style="padding:8px 6px; font-size:12px; text-align:center; width:14%;">المبلغ</th>
+            <tr>
+              <th style="padding:9px 6px; background:#0d9488; color:white; text-align:right; width:15%; border:1px solid #0d9488;">التاريخ</th>
+              <th style="padding:9px 6px; background:#0d9488; color:white; text-align:right; width:28%; border:1px solid #0d9488;">الوصف</th>
+              <th style="padding:9px 6px; background:#0d9488; color:white; text-align:right; width:27%; border:1px solid #0d9488;">الملاحظات</th>
+              <th style="padding:9px 6px; background:#0d9488; color:white; text-align:center; width:12%; border:1px solid #0d9488;">العملة</th>
+              <th style="padding:9px 6px; background:#0d9488; color:white; text-align:center; width:18%; border:1px solid #0d9488;">المبلغ</th>
             </tr>
           </thead>
-          <tbody>${rows}</tbody>
+          <tbody>
+            ${rows}
+          </tbody>
         </table>
 
-        <div style="margin-top:28px;">
-          <div style="font-size:14px; font-weight:800; margin-bottom:10px; color:#0d9488; border-bottom:2px solid #0d9488; padding-bottom:6px; text-align:center;">
+        <div style="margin-top:26px;">
+          <div style="font-size:14px; font-weight:800; margin-bottom:10px; color:#0d9488; border-bottom:2px solid #0d9488; padding-bottom:5px; text-align:center;">
             ملخص التقرير • الناتج النهائي
           </div>
           <table style="width:100%; border-collapse:collapse; font-size:13px;">
             <thead>
-              <tr style="background:#f1f5f9;">
-                <th style="padding:10px 8px; text-align:center; width:25%;">العملة</th>
-                <th style="padding:10px 8px; text-align:center; width:25%;">إجمالي الإيداع</th>
-                <th style="padding:10px 8px; text-align:center; width:25%;">إجمالي الخصم</th>
-                <th style="padding:10px 8px; text-align:center; width:25%;">الصافي</th>
+              <tr>
+                <th style="padding:9px 8px; background:#0d9488; color:white; text-align:center; width:25%; border:1px solid #0d9488;">العملة</th>
+                <th style="padding:9px 8px; background:#0d9488; color:white; text-align:center; width:25%; border:1px solid #0d9488;">إجمالي الإيداع</th>
+                <th style="padding:9px 8px; background:#0d9488; color:white; text-align:center; width:25%; border:1px solid #0d9488;">إجمالي الخصم</th>
+                <th style="padding:9px 8px; background:#0d9488; color:white; text-align:center; width:25%; border:1px solid #0d9488;">الصافي</th>
               </tr>
             </thead>
             <tbody>
@@ -896,12 +853,12 @@
           </table>
         </div>
 
-        <div class="report-footer" style="border-top:1px solid #ddd; margin:24px 0 8px; padding-top:10px;">
+        <div style="border-top:1px solid #ddd; margin:22px 0 8px; padding-top:8px;">
           <div style="text-align:center; font-size:10px; color:#888;">العجمي • منذ 1989 • تم الطباعة من نظام إدارة الصناديق</div>
         </div>
       `;
 
-      openDedicatedPrintWindow($("filterPrintSheet"), "تقرير العمليات - العجمي");
+      doPrint(html);
     }
 
     function highlight(el) {
