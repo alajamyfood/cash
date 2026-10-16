@@ -332,6 +332,16 @@
       return Number(num || 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
     }
 
+    // ===================== معرّف الجهاز الثابت =====================
+    function getDeviceId() {
+      let deviceId = localStorage.getItem("alajamy_device_id");
+      if (!deviceId) {
+        deviceId = "DEV-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 10);
+        localStorage.setItem("alajamy_device_id", deviceId);
+      }
+      return deviceId;
+    }
+
     function toggleFilter() {
       const section = $("filterSection");
       const btn = $("toggleFilterBtn");
@@ -511,100 +521,97 @@
       currentTransaction = null;
     }
 
-    // ===================== دالة الطباعة النهائية =====================
+    // ===================== دالة الطباعة =====================
     function doPrint(htmlContent) {
-      const fullHtml = `<!DOCTYPE html>
+      let printWindow = null;
+      try {
+        printWindow = window.open("", "_blank");
+        if (!printWindow) {
+          showToast("المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة وحاول مجدداً.", true);
+          return;
+        }
+
+        const baseHref = new URL(".", window.location.href).href;
+
+        const fullHtml = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="${baseHref}">
   <title>طباعة - العجمي</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; }
     body {
       font-family: 'Cairo', Arial, sans-serif;
       direction: rtl;
       background: #fff;
       color: #111;
       padding: 12mm;
+      margin: 0;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
     .print-actions {
-      position: fixed;
-      top: 12px;
-      left: 12px;
+      position: sticky;
+      top: 0;
       display: flex;
+      justify-content: center;
       gap: 10px;
+      padding: 12px;
+      background: #fff;
       z-index: 9999;
-      direction: rtl;
     }
     .print-actions button {
       border: 0;
       border-radius: 10px;
-      padding: 10px 18px;
-      font: 700 14px 'Cairo', Arial, sans-serif;
+      padding: 12px 20px;
+      font: 700 15px 'Cairo', Arial, sans-serif;
+      color: white;
       cursor: pointer;
-      box-shadow: 0 3px 12px rgba(0,0,0,.15);
     }
-    .btn-print {
-      background: #0d9488;
-      color: white;
-    }
-    .btn-close {
-      background: #475569;
-      color: white;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-    }
-    th, td {
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-    }
+    .btn-print { background: #0d9488; }
+    .btn-close { background: #475569; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { overflow-wrap: anywhere; }
     img { max-width: 100%; }
     @media print {
-      .print-actions { display: none !important; }
       @page { size: A4 portrait; margin: 10mm; }
-      body { padding: 0; }
+      body { padding: 0; background: white; }
+      .print-actions { display: none !important; }
+      tr { break-inside: avoid; page-break-inside: avoid; }
+      thead { display: table-header-group; }
     }
   </style>
 </head>
 <body>
   <div class="print-actions">
-    <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
-    <button class="btn-close" onclick="window.close()">إغلاق</button>
+    <button class="btn-print" id="printNow">🖨️ طباعة التقرير</button>
+    <button class="btn-close" id="closePrint">إغلاق</button>
   </div>
-
-  ${htmlContent}
-
+  <main id="reportContent">
+    ${htmlContent}
+  </main>
   <script>
-    // طباعة تلقائية بعد تحميل الصفحة (اختياري)
-    window.onload = function() {
-      setTimeout(function() {
-        // window.print();  // لو بدك طباعة تلقائية فك التعليق
-      }, 600);
-    };
+    document.getElementById("printNow").addEventListener("click", function() {
+      window.print();
+    });
+    document.getElementById("closePrint").addEventListener("click", function() {
+      window.close();
+    });
   <\/script>
 </body>
 </html>`;
 
-      const blob = new Blob([fullHtml], { type: "text/html" });
-      const url = URL.createObjectURL(blob);
-      const printWindow = window.open(url, "_blank");
-
-      if (!printWindow) {
-        showToast("اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى", true);
-        URL.revokeObjectURL(url);
-        return;
+        printWindow.document.open();
+        printWindow.document.write(fullHtml);
+        printWindow.document.close();
+      } catch (error) {
+        console.error("Print error:", error);
+        if (printWindow && !printWindow.closed) printWindow.close();
+        showToast("تعذر فتح صفحة الطباعة. حاول فتح التطبيق في Chrome.", true);
       }
-
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 20000);
     }
 
     function printSingle() {
@@ -612,7 +619,6 @@
         showToast("لم يتم تحديد العملية", true);
         return;
       }
-
       const op = currentTransaction;
       const isIncome = op.type === "income";
       const fundName = FUND_NAMES[op.fund] || op.fund;
@@ -621,7 +627,6 @@
         const d = new Date(op.date);
         dateFull = d.toLocaleString("ar-SY", { dateStyle: "full", timeStyle: "short" });
       }
-
       const html = `
         <div style="text-align:center; margin-bottom:18px;">
           <img src="logo.png" alt="العجمي" style="height:55px; margin:0 auto 6px;" onerror="this.style.display='none'">
@@ -726,7 +731,18 @@
       btn.disabled = true;
       btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...`;
       try {
-        const payload = { fund, currency, type, amount, description, notes, exchange_rate, date: new Date().toISOString() };
+        // ===== هنا التعديل المهم: إرسال id الجهاز =====
+        const payload = {
+          id: getDeviceId(),
+          fund,
+          currency,
+          type,
+          amount,
+          description,
+          notes,
+          exchange_rate,
+          date: new Date().toISOString()
+        };
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -777,16 +793,13 @@
       if (!allTransactions.length) {
         return showToast("لا توجد عمليات للطباعة", true);
       }
-
       let periodText = "الكل";
       if (currentFilter?.from || currentFilter?.to) {
         periodText = `${currentFilter.from || "..."} ← ${currentFilter.to || "..."}`;
       }
-
       const fundText = currentFilter?.fund ? FUND_NAMES[currentFilter.fund] : "الكل";
       const currencyText = currentFilter?.currency || "الكل";
       const typeText = currentFilter?.type ? (currentFilter.type === "income" ? "إيداع" : "خصم") : "الكل";
-
       const totals = {};
       allTransactions.forEach(op => {
         const curr = op.currency || "USD";
@@ -797,7 +810,6 @@
           totals[curr].expense += Number(op.amount) || 0;
         }
       });
-
       let summaryRows = "";
       Object.keys(totals).forEach(curr => {
         const t = totals[curr];
@@ -814,7 +826,6 @@
           </tr>
         `;
       });
-
       const rows = allTransactions.map(op => {
         const isIncome = op.type === "income";
         const d = op.date ? new Date(op.date) : null;
@@ -832,14 +843,12 @@
           </tr>
         `;
       }).join("");
-
       const html = `
         <div style="text-align:center; margin-bottom:16px;">
           <img src="logo.png" alt="العجمي" style="height:50px; margin:0 auto 6px;" onerror="this.style.display='none'">
           <div style="font-size:17px; font-weight:900;">شركة العجمي</div>
           <div style="font-size:11px; color:#666;">تقرير العمليات المفلترة</div>
         </div>
-
         <div style="background:#f1f5f9; padding:12px 14px; border-radius:8px; margin-bottom:18px; font-size:13px; color:#334155; border:1px solid #e2e8f0;">
           <div style="display:flex; flex-wrap:wrap; gap:12px 22px; justify-content:center; text-align:center;">
             <div><span style="color:#64748b;">الفترة:</span> <strong>${periodText}</strong></div>
@@ -851,7 +860,6 @@
             عدد العمليات: <strong style="color:#0f172a;">${allTransactions.length}</strong>
           </div>
         </div>
-
         <table style="width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px;">
           <thead>
             <tr>
@@ -866,7 +874,6 @@
             ${rows}
           </tbody>
         </table>
-
         <div style="margin-top:28px;">
           <div style="font-size:14px; font-weight:800; margin-bottom:12px; color:#0d9488; border-bottom:2px solid #0d9488; padding-bottom:6px; text-align:center;">
             ملخص التقرير • الناتج النهائي
@@ -885,12 +892,10 @@
             </tbody>
           </table>
         </div>
-
         <div style="border-top:1px solid #ddd; margin:24px 0 8px; padding-top:10px;">
           <div style="text-align:center; font-size:10px; color:#888;">العجمي • منذ 1989 • تم الطباعة من نظام إدارة الصناديق</div>
         </div>
       `;
-
       doPrint(html);
     }
 
