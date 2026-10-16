@@ -355,37 +355,59 @@
     }
 
     async function loadData(filter = null, silent = false) {
-      try {
-        if (!silent) showToast("جاري التحميل...", false, true);
-        let url = SCRIPT_URL;
-        const params = new URLSearchParams();
-        if (filter) {
-          if (filter.from) params.append("from", filter.from);
-          if (filter.to) params.append("to", filter.to);
-          if (filter.fund) params.append("fund", filter.fund);
-          if (filter.currency) params.append("currency", filter.currency);
-        }
-        if ([...params].length) url += "?" + params.toString();
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.status !== "success") throw new Error(data.message || "خطأ في جلب البيانات");
-        summary = data.summary || {};
-        allTransactions = data.transactions || [];
-        if (filter && filter.type) {
-          allTransactions = allTransactions.filter(t => t.type === filter.type);
-        }
-        currentFilter = filter;
-        renderTotal();
-        renderFunds();
-        renderHistory();
-        updateFilterStatus();
-        updatePrintFilterBtn();
-        if (!silent) showToast(filter ? "تم تطبيق الفلتر" : "تم التحديث", false);
-      } catch (err) {
-        console.error(err);
-        showToast("تعذر الاتصال • تحقق من الإنترنت", true);
+  try {
+    if (!silent) showToast("جاري التحميل...", false, true);
+
+    // دائماً نجيب كل البيانات (بدون فلتر)
+    const res = await fetch(SCRIPT_URL);
+    const data = await res.json();
+
+    if (data.status !== "success") throw new Error(data.message || "خطأ في جلب البيانات");
+
+    // الرصيد الحقيقي دائماً
+    summary = data.summary || {};
+
+    // كل العمليات
+    let transactions = data.transactions || [];
+
+    // ===== تطبيق الفلتر هنا فقط على القائمة =====
+    if (filter) {
+      if (filter.from) {
+        const fromDate = new Date(filter.from);
+        fromDate.setHours(0, 0, 0, 0);
+        transactions = transactions.filter(t => t.date && new Date(t.date) >= fromDate);
+      }
+      if (filter.to) {
+        const toDate = new Date(filter.to);
+        toDate.setHours(23, 59, 59, 999);
+        transactions = transactions.filter(t => t.date && new Date(t.date) <= toDate);
+      }
+      if (filter.fund) {
+        transactions = transactions.filter(t => t.fund === filter.fund);
+      }
+      if (filter.currency) {
+        transactions = transactions.filter(t => t.currency === filter.currency);
+      }
+      if (filter.type) {
+        transactions = transactions.filter(t => t.type === filter.type);
       }
     }
+
+    allTransactions = transactions;
+    currentFilter = filter;
+
+    renderTotal();
+    renderFunds();
+    renderHistory();
+    updateFilterStatus();
+    updatePrintFilterBtn();
+
+    if (!silent) showToast(filter ? "تم تطبيق الفلتر" : "تم التحديث", false);
+  } catch (err) {
+    console.error(err);
+    showToast("تعذر الاتصال • تحقق من الإنترنت", true);
+  }
+}
 
     function renderTotal() {
       const usd = (summary.gaziantep?.USD || 0) + (summary.istanbul?.USD || 0) + (summary.aleppo?.USD || 0);
