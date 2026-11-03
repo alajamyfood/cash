@@ -52,8 +52,8 @@
       display: flex; align-items: center; justify-content: center; padding: 20px;
     }
     #lockScreen.hidden { display: none; }
-    .currency-usd { color: #fbbf24; }      /* ذهبي للدولار */
-    .currency-try { color: #38bdf8; }      /* سماوي للتركي */
+    .currency-usd { color: #fbbf24; }
+    .currency-try { color: #38bdf8; }
   </style>
 </head>
 <body class="pb-28 pt-5 px-4 sm:px-6">
@@ -176,6 +176,15 @@
         </h2>
         <span id="filterStatus" class="text-xs text-slate-500 bg-slate-800/60 px-3 py-1 rounded-full">جميع العمليات</span>
       </div>
+
+      <!-- شريط البحث المباشر -->
+      <div class="relative mb-4">
+        <i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+        <input id="searchInput" type="text" placeholder="بحث سريع في الوصف أو الملاحظات..." 
+               oninput="onSearchInput()"
+               class="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-2xl pr-11 pl-4 py-3.5 text-sm outline-none transition">
+      </div>
+
       <div id="historyList" class="space-y-3 max-h-[55vh] overflow-y-auto pr-1 pb-4"></div>
 
       <!-- Pagination -->
@@ -273,7 +282,7 @@
             <button onclick="printSingle()" class="flex-1 bg-teal-600 hover:bg-teal-500 py-3 rounded-xl font-bold flex items-center justify-center gap-2">
               <i class="fa-solid fa-print"></i> طباعة
             </button>
-            <button onclick="enterEditMode()" class="flex-1 bg-amber-600 hover:bg-amber-500 py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+            <button onclick="requestEditPassword()" class="flex-1 bg-amber-600 hover:bg-amber-500 py-3 rounded-xl font-bold flex items-center justify-center gap-2">
               <i class="fa-solid fa-pen"></i> تعديل
             </button>
           </div>
@@ -291,6 +300,25 @@
     </div>
   </div>
 
+  <!-- Modal: طلب رمز التعديل -->
+  <div id="editPassModal" class="fixed inset-0 z-[60] hidden modal-bg flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-sm shadow-2xl fade-in p-6 text-center">
+      <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-amber-600/20 flex items-center justify-center text-2xl text-amber-400">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <h3 class="text-xl font-bold mb-2">رمز التعديل مطلوب</h3>
+      <p class="text-slate-400 text-sm mb-5">أدخل رمز التعديل للمتابعة</p>
+      <input id="editPassInput" type="password" placeholder="••••••••" 
+             class="w-full bg-slate-800 border border-slate-600 focus:border-amber-500 rounded-2xl px-5 py-4 text-center text-2xl tracking-widest outline-none force-ltr mb-4"
+             autocomplete="off">
+      <p id="editPassError" class="text-rose-400 text-sm mb-3 hidden">الرمز غير صحيح</p>
+      <div class="flex gap-3">
+        <button onclick="closeEditPassModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold">إلغاء</button>
+        <button onclick="checkEditPassword()" class="flex-1 bg-amber-600 hover:bg-amber-500 py-3 rounded-xl font-bold">تأكيد</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3.5 rounded-2xl text-white font-medium shadow-2xl flex items-center gap-3 z-50 min-w-[260px] justify-center hidden toast-in">
     <i id="toastIcon" class="fa-solid fa-circle-check text-lg"></i>
@@ -299,6 +327,7 @@
 
   <script>
     const APP_PASSWORD = "161192";
+    const EDIT_PASSWORD = "19891989";
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfTUufVVRWApjRXqP0sSyUZ5bOKIEBdVYP1h9di2FGJG-dRv_rIjfJVjXreFOVqoOFqw/exec";
     const PAGE_SIZE = 15;
 
@@ -312,9 +341,11 @@
     let currentTransaction = null;
     let currentFilter = null;
     let allTransactions = [];
+    let filteredTransactions = [];
     let summary = {};
     let currentPage = 1;
     let isEditMode = false;
+    let searchQuery = "";
 
     function $(id) { return document.getElementById(id); }
     function formatNumber(num) {
@@ -397,9 +428,9 @@
         currentFilter = filter;
         currentPage = 1;
 
+        applySearchAndRender();
         renderTotal();
         renderFunds();
-        renderHistory();
         updateFilterStatus();
         updatePrintFilterBtn();
         if (!silent) showToast(filter ? "تم تطبيق الفلتر" : "تم التحديث");
@@ -461,17 +492,47 @@
       });
     }
 
+    // ========== البحث المباشر ==========
+    function onSearchInput() {
+      searchQuery = ($("searchInput").value || "").trim();
+      currentPage = 1;
+      applySearchAndRender();
+    }
+
+    function applySearchAndRender() {
+      if (!searchQuery) {
+        filteredTransactions = allTransactions.slice();
+      } else {
+        const q = searchQuery.toLowerCase();
+        filteredTransactions = allTransactions.filter(op => {
+          const desc = (op.description || "").toLowerCase();
+          const notes = (op.notes || "").toLowerCase();
+          const fundName = (FUND_NAMES[op.fund] || op.fund || "").toLowerCase();
+          const amountStr = String(op.amount || "");
+          const currency = (op.currency || "").toLowerCase();
+          return desc.includes(q) || notes.includes(q) || fundName.includes(q) || amountStr.includes(q) || currency.includes(q);
+        });
+      }
+      renderHistory();
+    }
+
     function renderHistory() {
       const cont = $("historyList");
       cont.innerHTML = "";
-      if (allTransactions.length === 0) {
-        cont.innerHTML = `<div class="text-center py-16 text-slate-500"><i class="fa-solid fa-inbox text-4xl mb-3 opacity-40"></i><p>لا توجد عمليات في هذه الفترة</p></div>`;
+
+      const list = filteredTransactions;
+
+      if (list.length === 0) {
+        const msg = searchQuery
+          ? `لا توجد نتائج تطابق «${searchQuery}»`
+          : "لا توجد عمليات في هذه الفترة";
+        cont.innerHTML = `<div class="text-center py-16 text-slate-500"><i class="fa-solid fa-inbox text-4xl mb-3 opacity-40"></i><p>${msg}</p></div>`;
         $("pagination").classList.add("hidden");
         return;
       }
 
       const start = (currentPage - 1) * PAGE_SIZE;
-      const pageItems = allTransactions.slice(start, start + PAGE_SIZE);
+      const pageItems = list.slice(start, start + PAGE_SIZE);
 
       pageItems.forEach(op => {
         const isIncome = op.type === "income";
@@ -502,7 +563,7 @@
         cont.appendChild(div);
       });
 
-      const totalPages = Math.ceil(allTransactions.length / PAGE_SIZE);
+      const totalPages = Math.ceil(list.length / PAGE_SIZE);
       if (totalPages > 1) {
         $("pagination").classList.remove("hidden");
         $("pageInfo").textContent = `${currentPage} / ${totalPages}`;
@@ -514,7 +575,7 @@
     }
 
     function goToPage(page) {
-      const totalPages = Math.ceil(allTransactions.length / PAGE_SIZE);
+      const totalPages = Math.ceil(filteredTransactions.length / PAGE_SIZE);
       if (page < 1 || page > totalPages) return;
       currentPage = page;
       renderHistory();
@@ -566,6 +627,37 @@
         <div><div class="text-slate-400 text-xs mb-1">سعر الصرف</div><div class="bg-slate-800/60 rounded-xl px-4 py-3 force-ltr">${op.exchange_rate ? formatNumber(op.exchange_rate) : "—"}</div></div>
       `;
     }
+
+    // ========== طلب رمز التعديل ==========
+    function requestEditPassword() {
+      $("editPassInput").value = "";
+      $("editPassError").classList.add("hidden");
+      $("editPassModal").classList.remove("hidden");
+      setTimeout(() => $("editPassInput").focus(), 100);
+    }
+
+    function closeEditPassModal() {
+      $("editPassModal").classList.add("hidden");
+      $("editPassInput").value = "";
+      $("editPassError").classList.add("hidden");
+    }
+
+    function checkEditPassword() {
+      const pass = $("editPassInput").value;
+      if (pass === EDIT_PASSWORD) {
+        closeEditPassModal();
+        enterEditMode();
+      } else {
+        $("editPassError").classList.remove("hidden");
+        $("editPassInput").value = "";
+        $("editPassInput").focus();
+        setTimeout(() => $("editPassError").classList.add("hidden"), 2500);
+      }
+    }
+
+    $("editPassInput")?.addEventListener("keypress", e => {
+      if (e.key === "Enter") checkEditPassword();
+    });
 
     function enterEditMode() {
       if (!currentTransaction) return;
